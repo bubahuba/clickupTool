@@ -1,0 +1,13 @@
+/**
+ * Theme customization - customize Tailwind/shadcn variables here
+ * Finlandica Google font for all headers
+ */
+@theme inline {
+	--font-heading: 'Finlandica', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+	h1, h2, h3, h4, h5, h6 {
+		font-family: 'Finlandica', ui-sans-serif, system-ui, sans-serif;
+	}
+}
