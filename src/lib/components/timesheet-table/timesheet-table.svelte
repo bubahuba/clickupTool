@@ -20,13 +20,17 @@
 		year?: number;
 		month?: number; // 0–11
 		onMonthChange?: (year: number, month: number) => void;
+		isLoading?: boolean;
+		error?: Error | null;
 	}
 
 	let {
 		usersTimesheets = [],
 		year = new Date().getFullYear(),
 		month = new Date().getMonth(),
-		onMonthChange
+		onMonthChange,
+		isLoading = false,
+		error = null
 	}: Props = $props();
 
 	const locale = $derived(page.params.locale ?? "en");
@@ -40,14 +44,16 @@
 	const daysInMonth = $derived.by(() => {
 		const dayFormatter = new Intl.DateTimeFormat(locale, { weekday: "short" });
 		const last = new Date(year, month + 1, 0);
-		const days: { date: Date; day: number; dayName: string; key: string }[] = [];
+		const days: { date: Date; day: number; dayName: string; key: string; isWeekend: boolean }[] = [];
 		for (let d = 1; d <= last.getDate(); d++) {
 			const date = new Date(year, month, d);
+			const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
 			days.push({
 				date,
 				day: d,
 				dayName: dayFormatter.format(date),
-				key: date.toISOString().slice(0, 10)
+				key: date.toISOString().slice(0, 10),
+				isWeekend: dayOfWeek === 0 || dayOfWeek === 6
 			});
 		}
 		return days;
@@ -86,11 +92,24 @@
 				<TableRow>
 					<TableHead class="sticky-user-col sticky left-0 bg-background z-3">{m.user()}</TableHead>
 					{#each daysInMonth as dayItem (dayItem.key)}
-						<TableHead class="day-col">{dayItem.dayName} {dayItem.day}</TableHead>
+						<TableHead class={cn("day-col", dayItem.isWeekend && "bg-muted")}>{dayItem.dayName} {dayItem.day}</TableHead>
 					{/each}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
+				{#if isLoading}
+					<TableRow>
+						<TableCell colspan={daysInMonth.length + 1} class="text-center py-8 text-muted-foreground">
+							{m.loading_timesheets()}
+						</TableCell>
+					</TableRow>
+				{:else if error}
+					<TableRow>
+						<TableCell colspan={daysInMonth.length + 1} class="text-center py-8 text-destructive">
+							{m.error_timesheet({ message: error.message })}
+						</TableCell>
+					</TableRow>
+				{:else}
 				{#each usersTimesheets as { user, hoursByDay } (user.id)}
 					<TableRow>
 						<TableCell class="sticky-user-col relative font-medium sticky left-0 bg-background z-3">
@@ -107,7 +126,7 @@
 							{@const hours = dayDetails?.total ?? 0}
 							{@const isOverMax = hours > MAX_HOURS}
 							{@const barHeight = Math.min(hours / MAX_HOURS, 1) * 100}
-							<TableCell class="day-col day-cell relative">
+							<TableCell class={cn("day-col day-cell relative", dayItem.isWeekend && "bg-muted")}>
 								<div
 									class={cn(
 										"day-bar cursor-default",
@@ -155,6 +174,7 @@
 						{/each}
 					</TableRow>
 				{/each}
+				{/if}
 			</TableBody>
 			</table>
 		</div>
@@ -191,6 +211,7 @@
 	.timesheet-table {
 		width: max-content;
 		min-width: 100%;
+		table-layout: fixed;
 		border-collapse: separate;
 		border-spacing: 0;
 	}
@@ -210,15 +231,16 @@
 		z-index: 3;
 	}
 
-	.day-col {
-		min-width: 3.5rem;
+	:global(.day-col) {
 		width: 3.5rem;
+		min-width: 3.5rem;
+		max-width: 3.5rem;
 		text-align: center;
 		padding: 0.25rem;
 		vertical-align: middle;
 	}
 
-	.day-cell {
+	:global(.day-col.day-cell) {
 		height: 2.5rem;
 		padding: 0;
 		vertical-align: bottom;

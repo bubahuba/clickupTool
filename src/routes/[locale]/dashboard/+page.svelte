@@ -83,18 +83,14 @@
 					<p class="muted">{m.no_workspace()}</p>
 				{/if}
 			{:else}
-				{#if timesheetsQuery.isPending}
-					<p>{m.loading_timesheets()}</p>
-				{:else if timesheetsQuery.isError}
-					<p class="error">{m.error_timesheet({ message: timesheetsQuery.error?.message ?? '' })}</p>
-				{:else}
-					<TimesheetTable
-						usersTimesheets={usersTimesheets}
-						{year}
-						{month}
-						onMonthChange={handleMonthChange}
-					/>
-				{/if}
+				<TimesheetTable
+					usersTimesheets={usersTimesheets}
+					{year}
+					{month}
+					onMonthChange={handleMonthChange}
+					isLoading={timesheetsQuery.isPending}
+					error={timesheetsQuery.error}
+				/>
 			{/if}
 		</div>
 	{/if}
