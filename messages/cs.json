@@ -1,4 +1,16 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"welcome_dashboard": "Vítejte {name} {surname}"
+	"welcome_dashboard": "Vítejte {name} {surname}",
+	"user": "Uživatel",
+	"loading": "Načítání...",
+	"loading_workspace": "Načítání pracovního prostoru...",
+	"loading_timesheets": "Načítání výkazů práce...",
+	"error_prefix": "Chyba: {message}",
+	"error_workspace": "Nepodařilo se načíst pracovní prostor: {message}",
+	"error_timesheet": "Chyba výkazu práce: {message}",
+	"no_workspace": "Žádný pracovní prostor není k dispozici.",
+	"aria_previous_month": "Předchozí měsíc",
+	"aria_next_month": "Následující měsíc",
+	"tooltip_total": "Celkem",
+	"no_time_tracked": "Žádný evidovaný čas"
 }
