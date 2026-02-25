@@ -1,0 +1,42 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "ClickUp API User", "version": "2.0" },
+  "servers": [{ "url": "https://api.clickup.com/api", "description": "ClickUp" }],
+  "paths": {
+    "/v2/user": {
+      "get": {
+        "summary": "Get Authorized User",
+        "operationId": "getAuthorizedUser",
+        "responses": {
+          "200": {
+            "description": "Authorized user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "username": { "type": "string" },
+                        "email": { "type": "string" },
+                        "color": { "type": "string" },
+                        "profilePicture": { "type": "string" },
+                        "initials": { "type": "string" },
+                        "week_start_day": { "type": "integer" },
+                        "global_font_support": { "type": "boolean" }
+                      },
+                      "required": ["id", "username"]
+                    }
+                  },
+                  "required": ["user"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
