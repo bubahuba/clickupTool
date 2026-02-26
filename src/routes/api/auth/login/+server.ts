@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createClickUpClient } from '$lib/api/client.js';
-import { CLICKUP_TOKEN_COOKIE } from '$lib/auth/token.js';
+import { CLICKUP_TOKEN_COOKIE, encodeToken } from '$lib/auth/token.js';
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ error: 'Invalid token' }, { status: 401 });
 	}
 
-	cookies.set(CLICKUP_TOKEN_COOKIE, token, {
+	cookies.set(CLICKUP_TOKEN_COOKIE, encodeToken(token), {
 		path: '/',
 		maxAge: COOKIE_MAX_AGE,
 		httpOnly: false,

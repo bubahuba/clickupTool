@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { cn } from '$lib/utils.js';
-	import { persistedToken, syncTokenToCookie } from '$lib/auth/token.js';
+	import { persistedToken, syncTokenToCookie, encodeToken } from '$lib/auth/token.js';
 
 	interface Props {
 		class?: string;
@@ -38,7 +38,7 @@
 				return;
 			}
 
-			persistedToken.set(token);
+			persistedToken.set(encodeToken(token));
 			syncTokenToCookie(token);
 			await invalidateAll();
 		} catch {
