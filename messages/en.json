@@ -41,5 +41,8 @@
 	"time_estimate": "Time estimate",
 	"time_spent": "Time spent",
 	"hours_format": "{hours} h",
-	"no_assignees": "No assignees"
+	"no_assignees": "No assignees",
+	"capacity_grid_title": "Capacity (last 12 months)",
+	"capacity_legend_less": "Less",
+	"capacity_legend_more": "8+ h"
 }

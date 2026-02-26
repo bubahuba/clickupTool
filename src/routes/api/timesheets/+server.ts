@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchClickUpTeams, fetchClickUpTimeEntries } from '$lib/api/clickup-fetch.js';
 import { env } from '$env/dynamic/private';
+import { toLocalDateKey } from '$lib/utils.js';
 import type {
 	UserTimesheet,
 	TimesheetUser,
@@ -10,6 +11,20 @@ import type {
 	DayTask
 } from '$lib/components/timesheet-table/types.js';
 
+/** Format date as YYYY-MM-DD in a specific timezone. */
+function toDateKeyInTimezone(date: Date, timezone?: string): string {
+	if (timezone) {
+		const formatter = new Intl.DateTimeFormat('en-CA', {
+			timeZone: timezone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		});
+		return formatter.format(date);
+	}
+	return toLocalDateKey(date);
+}
+
 export const GET: RequestHandler = async ({ url }) => {
 	const token = env.API_TOKEN;
 	if (!token) {
@@ -17,14 +32,13 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 
 	const teamId = url.searchParams.get('teamId');
+	const timezone = url.searchParams.get('timezone') ?? undefined;
+	const monthsBack = parseInt(url.searchParams.get('monthsBack') ?? '', 10);
 	const year = parseInt(url.searchParams.get('year') ?? '', 10);
 	const month = parseInt(url.searchParams.get('month') ?? '', 10);
 
-	if (!teamId || isNaN(year) || isNaN(month) || month < 0 || month > 11) {
-		return json(
-			{ error: 'teamId, year, and month (0-11) are required' },
-			{ status: 400 }
-		);
+	if (!teamId) {
+		return json({ error: 'teamId is required' }, { status: 400 });
 	}
 
 	const teamIdNum = parseInt(teamId, 10);
@@ -32,10 +46,27 @@ export const GET: RequestHandler = async ({ url }) => {
 		return json({ error: 'Invalid teamId' }, { status: 400 });
 	}
 
-	const startDate = new Date(year, month, 1);
-	const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-	const startDateMs = startDate.getTime();
-	const endDateMs = endDate.getTime();
+	let startDateMs: number;
+	let endDateMs: number;
+	if (!isNaN(monthsBack) && monthsBack > 0) {
+		const endDate = new Date();
+		endDate.setHours(23, 59, 59, 999);
+		const startDate = new Date(endDate);
+		startDate.setMonth(startDate.getMonth() - monthsBack);
+		startDate.setHours(0, 0, 0, 0);
+		startDateMs = startDate.getTime();
+		endDateMs = endDate.getTime();
+	} else if (!isNaN(year) && !isNaN(month) && month >= 0 && month <= 11) {
+		const startDate = new Date(year, month, 1);
+		const endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
+		startDateMs = startDate.getTime();
+		endDateMs = endDate.getTime();
+	} else {
+		return json(
+			{ error: 'Either monthsBack or both year and month (0-11) are required' },
+			{ status: 400 }
+		);
+	}
 
 	try {
 		const [teamsRes, entriesRes] = await Promise.all([
@@ -78,7 +109,7 @@ export const GET: RequestHandler = async ({ url }) => {
 					typeof startRaw === 'number' && startRaw < 1e12 ? startRaw * 1000 : Number(startRaw);
 				const startDateEntry = new Date(startMs);
 				if (Number.isNaN(startDateEntry.getTime())) continue;
-				const dayKey = startDateEntry.toISOString().slice(0, 10);
+				const dayKey = toDateKeyInTimezone(startDateEntry, timezone);
 
 				const durationMs = Math.abs(entry.duration ?? 0);
 				const hours = durationMs / (1000 * 60 * 60);

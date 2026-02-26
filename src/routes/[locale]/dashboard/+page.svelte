@@ -8,6 +8,7 @@
 		type GetAuthorizedUserResponse
 	} from '$lib/api/index.js';
 	import { TimesheetTable } from '$lib/components/timesheet-table/index.js';
+	import { CapacityGrid } from '$lib/components/capacity-grid/index.js';
 
 	const now = new Date();
 	let year = $state(now.getFullYear());
@@ -33,11 +34,13 @@
 
 	const teamId = $derived(teamsQuery.data?.teams?.[0]?.id);
 
+	const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
 	const timesheetsQuery = createQuery(() => ({
 		...clickUpQueryKeys.timesheets(teamId?.toString() ?? '', String(year), String(month)),
 		queryFn: async () => {
+			const tz = timezone ? `&timezone=${encodeURIComponent(timezone)}` : '';
 			const res = await fetch(
-				`/api/timesheets?teamId=${teamId}&year=${year}&month=${month}`
+				`/api/timesheets?teamId=${teamId}&year=${year}&month=${month}${tz}`
 			);
 			if (!res.ok) throw new Error(await res.text());
 			const data = await res.json();
@@ -84,6 +87,7 @@
 					<p class="muted">{m.no_workspace()}</p>
 				{/if}
 			{:else}
+				<CapacityGrid teamId={teamId.toString()} />
 				<TimesheetTable
 					usersTimesheets={usersTimesheets}
 					{year}

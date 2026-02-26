@@ -11,7 +11,7 @@
 	import { resolve } from "$app/paths";
 	import * as m from "$lib/paraglide/messages.js";
 	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-	import { cn } from "$lib/utils.js";
+	import { cn, toLocalDateKey } from "$lib/utils.js";
 	import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 	import ChevronRight from "@lucide/svelte/icons/chevron-right";
 	import type { UserTimesheet } from "./types.js";
@@ -53,7 +53,7 @@
 				date,
 				day: d,
 				dayName: dayFormatter.format(date),
-				key: date.toISOString().slice(0, 10),
+				key: toLocalDateKey(date),
 				isWeekend: dayOfWeek === 0 || dayOfWeek === 6
 			});
 		}

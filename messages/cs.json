@@ -41,5 +41,8 @@
 	"time_estimate": "Odhad času",
 	"time_spent": "Strávený čas",
 	"hours_format": "{hours} h",
-	"no_assignees": "Žádní zodpovědní"
+	"no_assignees": "Žádní zodpovědní",
+	"capacity_grid_title": "Kapacita (posledních 12 měsíců)",
+	"capacity_legend_less": "Méně",
+	"capacity_legend_more": "8+ h"
 }
