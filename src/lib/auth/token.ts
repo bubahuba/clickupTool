@@ -1,4 +1,5 @@
 import { persisted } from 'svelte-persisted-store';
+import { multiUserTimesheetsAllowed } from '$lib/stores/multi-user-timesheets.js';
 
 export const CLICKUP_TOKEN_COOKIE = 'clickup_api_token';
 
@@ -16,6 +17,7 @@ export function syncTokenToCookie(token: string): void {
 /** Clear token from persisted store and cookie (client-only). */
 export function clearToken(): void {
 	if (typeof document === 'undefined') return;
+	multiUserTimesheetsAllowed.set(true);
 	persistedToken.set(null);
 	document.cookie = `${CLICKUP_TOKEN_COOKIE}=; path=/; max-age=0`;
 }

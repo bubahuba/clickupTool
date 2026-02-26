@@ -38,7 +38,7 @@
 <h1 class="text-2xl font-semibold mb-6 sticky top-0 bg-background z-10">{m.tasks_by_spaces_title()}</h1>
 
 {#if teamsQuery.isError}
-	<p class="error">
+	<p class="text-destructive">
 		{m.error_workspace({ message: teamsQuery.error?.message ?? "" })}
 	</p>
 {:else if !teamId}
@@ -56,9 +56,3 @@
 		<SpaceSection spaceId={space.id} spaceName={space.name} {teamIdStr} />
 	{/each}
 {/if}
-
-<style>
-	.error {
-		color: var(--destructive);
-	}
-</style>

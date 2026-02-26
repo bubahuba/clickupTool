@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { resolve } from '$app/paths';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -9,15 +10,19 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { clickUpQueryKeys } from '$lib/api/index.js';
 	import { page } from '$app/state';
+	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import { cn, getTaskDisplayId } from '$lib/utils.js';
 	import { spaceSectionsExpanded } from '$lib/stores/space-sections-expanded.js';
+	import { statusGroupsExpanded } from '$lib/stores/status-groups-expanded.js';
 
 	interface Props {
 		spaceId: string;
 		spaceName: string;
 		teamIdStr: string;
+		class?: string;
 	}
 
-	let { spaceId, spaceName, teamIdStr }: Props = $props();
+	let { spaceId, spaceName, teamIdStr, class: className }: Props = $props();
 
 	// Start false for SSR/hydration, restore from persisted store after mount
 	let expanded = $state(false);
@@ -51,12 +56,60 @@
 	}));
 
 	const tasks = $derived(tasksQuery.data ?? []);
+
+	const NO_STATUS = '__no_status';
+	type TaskWithStatus = (typeof tasks)[number];
+
+	const tasksByStatus = $derived.by(() => {
+		const map = new SvelteMap<string, { status: { status: string; color?: string } | null; tasks: TaskWithStatus[] }>();
+		const order: string[] = [];
+		for (const task of tasks) {
+			const key = task.status ? task.status.status : NO_STATUS;
+			const entry = map.get(key);
+			const statusInfo = task.status ?? null;
+			if (!entry) {
+				order.push(key);
+				map.set(key, { status: statusInfo, tasks: [task] });
+			} else {
+				entry.tasks.push(task);
+			}
+		}
+		return order.map((key) => ({ key, ...map.get(key)! }));
+	});
+
+	// Sync status group expansion from persisted store (same pattern as space sections)
+	let statusExpandedState = $state<Record<string, boolean>>({});
+
+	onMount(() => {
+		statusExpandedState = get(statusGroupsExpanded) ?? {};
+		return statusGroupsExpanded.subscribe((v) => {
+			statusExpandedState = v ?? {};
+		});
+	});
+
+	function statusGroupKey(statusKey: string) {
+		return `${spaceId}:${statusKey}`;
+	}
+
+	function isStatusGroupExpanded(statusKey: string) {
+		return statusExpandedState[statusGroupKey(statusKey)] ?? true;
+	}
+
+	function toggleStatusGroup(statusKey: string) {
+		statusGroupsExpanded.update((state) => {
+			const key = statusGroupKey(statusKey);
+			return { ...state, [key]: !(state[key] ?? true) };
+		});
+	}
 </script>
 
+<div class={cn(className)}>
 <button
 	type="button"
-	class="space-header"
-	class:space-header-sticky={expanded}
+	class={cn(
+		"flex items-center gap-2 w-full text-left text-lg font-medium px-4 py-4 mb-3 bg-background border-none cursor-pointer text-foreground transition-colors duration-150 hover:bg-muted/50",
+		expanded && "sticky top-8 z-10"
+	)}
 	onclick={toggleExpanded}
 	aria-expanded={expanded}
 >
@@ -65,98 +118,81 @@
 	{:else}
 		<ChevronRight class="size-4 shrink-0 transition-transform" />
 	{/if}
-	<span class="space-name">{spaceName}</span>
+	<span class="flex-1">{spaceName}</span>
 </button>
 {#if expanded}
-	<section class="space-section" in:slide out:slide>
+	<section class="border border-border rounded-lg px-5 py-4" in:slide out:slide>
 		{#if tasksQuery.isPending}
 			<p class="text-muted-foreground text-sm">{m.loading_tasks()}</p>
 		{:else if tasks.length === 0}
 			<p class="text-muted-foreground text-sm">{m.no_tasks()}</p>
 		{:else}
-			<ul class="task-list">
-				{#each tasks as task (task.id)}
-					<li>
-						<a
-							href={resolve(`/${locale}/tasks-by-spaces/${task.id}`)}
-							class="task-link"
+			<Tooltip.Provider>
+			<div class="flex flex-col gap-4">
+				{#each tasksByStatus as group (group.key)}
+					<div class="flex flex-col gap-2">
+						<button
+							type="button"
+							class="flex items-center gap-2 w-full text-left text-xs font-medium text-muted-foreground px-3 py-1.5 rounded-md border-none bg-transparent cursor-pointer hover:bg-muted/50 transition-colors"
+							onclick={() => toggleStatusGroup(group.key)}
+							aria-expanded={isStatusGroupExpanded(group.key)}
 						>
-							<span class="task-id">{task.custom_id ?? task.id}</span>
-							<span class="task-name">{task.name}</span>
-						</a>
-					</li>
+							{#if isStatusGroupExpanded(group.key)}
+								<ChevronDown class="size-3 shrink-0 transition-transform" />
+							{:else}
+								<ChevronRight class="size-3 shrink-0 transition-transform" />
+							{/if}
+							<span
+								class="size-2 shrink-0 rounded-full"
+								style="background-color: {group.status?.color ?? '#94a3b8'}"
+								aria-hidden="true"
+							></span>
+							{group.key === NO_STATUS ? m.no_status() : group.key}
+							<span
+								class="shrink-0 min-w-5 h-5 rounded-full bg-muted inline-flex items-center justify-center text-[10px] font-medium tabular-nums px-1.5"
+							>
+								{group.tasks.length}
+							</span>
+						</button>
+						{#if isStatusGroupExpanded(group.key)}
+						<ul class="list-none p-0 m-0 flex flex-col gap-1" in:slide out:slide>
+							{#each group.tasks as task (task.id)}
+								<li>
+									<a
+										href={resolve(`/${locale}/tasks-by-spaces/${task.id}`)}
+										class="flex items-center gap-3 px-3 py-2 rounded-md no-underline text-foreground transition-colors duration-150 hover:bg-muted"
+									>
+										<span class="font-mono text-xs text-muted-foreground min-w-24">{getTaskDisplayId(task)}</span>
+										{#if task.status}
+											<Tooltip.Root>
+												<Tooltip.Trigger
+													class="cursor-default shrink-0 inline-flex"
+													aria-label={task.status.status}
+												>
+													{#snippet child({ props })}
+														<span
+															{...props}
+															class={cn(props.class as string | undefined, 'size-2.5 shrink-0 rounded-full block')}
+															style="background-color: {task.status.color ?? '#94a3b8'}"
+														></span>
+													{/snippet}
+												</Tooltip.Trigger>
+												<Tooltip.Content side="top">
+													{task.status.status}
+												</Tooltip.Content>
+											</Tooltip.Root>
+										{/if}
+										<span class="flex-1">{task.name}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+						{/if}
+					</div>
 				{/each}
-			</ul>
+			</div>
+			</Tooltip.Provider>
 		{/if}
 	</section>
 {/if}
-
-<style>
-	.space-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		width: 100%;
-		text-align: left;
-		font-size: 1.125rem;
-		font-weight: 500;
-		padding: 1rem 1rem;
-		margin-bottom: 0.75rem;
-		background: var(--background);
-		border: none;
-		cursor: pointer;
-		color: var(--foreground);
-		transition: background 0.15s;
-	}
-	.space-header-sticky {
-		position: sticky;
-		top: 2rem;
-		z-index: 10;
-	}
-	.space-header:hover {
-		background: color-mix(in oklch, var(--muted) 50%, transparent);
-	}
-	.space-name {
-		flex: 1;
-	}
-	.space-section {
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-		padding: 1rem 1.25rem;
-	}
-
-	.task-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.task-link {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.375rem;
-		text-decoration: none;
-		color: var(--foreground);
-		transition: background 0.15s;
-	}
-
-	.task-link:hover {
-		background: var(--muted);
-	}
-
-	.task-id {
-		font-family: monospace;
-		font-size: 0.75rem;
-		color: var(--muted-foreground);
-		min-width: 6rem;
-	}
-
-	.task-name {
-		flex: 1;
-	}
-</style>
+</div>

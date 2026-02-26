@@ -20,6 +20,15 @@
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Check from '@lucide/svelte/icons/check';
 	import { page } from '$app/state';
+	import {
+		formatCommentDateTime,
+		isValidDate
+	} from '$lib/utils/dates.js';
+	import {
+		formatHoursFromMs,
+		getInitials,
+		getTaskDisplayId
+	} from '$lib/utils.js';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -61,37 +70,7 @@
 	let commentSubmitting = $state(false);
 	let commentError = $state('');
 
-	function formatCommentDate(ts: number | string | undefined | null): string {
-		if (ts == null || ts === '') return '';
-		const date = new Date(ts);
-		if (Number.isNaN(date.getTime())) return '';
-		return date.toLocaleString(page.params.locale ?? 'en', {
-			dateStyle: 'medium',
-			timeStyle: 'short'
-		});
-	}
-
-	function isValidDate(ts: number | string | undefined | null): boolean {
-		if (ts == null || ts === '') return false;
-		const date = new Date(ts);
-		return !Number.isNaN(date.getTime());
-	}
-
-	function getInitials(username: string, providedInitials?: string): string {
-		if (providedInitials) return providedInitials;
-		const parts = username.trim().split(/\s+/);
-		if (parts.length >= 2) {
-			return (parts[0][0] + parts[1][0]).toUpperCase();
-		}
-		const s = username.trim();
-		return s.slice(0, 2).toUpperCase() || (s[0]?.toUpperCase() ?? '?');
-	}
-
-	function formatHours(ms: number): string {
-		if (!ms || ms <= 0) return '0';
-		const hours = ms / (1000 * 60 * 60);
-		return hours % 1 === 0 ? String(Math.round(hours)) : hours.toFixed(1);
-	}
+	const locale = $derived(page.params.locale ?? 'en');
 
 	const backHref = $derived(`/${page.params.locale ?? 'en'}/tasks-by-spaces`);
 
@@ -131,8 +110,8 @@
 	<title>{m.edit_task()} – {task?.name ?? ''}</title>
 </svelte:head>
 
-<div class="task-edit">
-	<div class="task-edit-header">
+<div class="p-8 max-w-[42rem]">
+	<div class="flex flex-col gap-2">
 		<div class="flex items-center gap-2">
 			<Button variant="ghost" size="sm" href={backHref}>
 				<ArrowLeft class="size-4" />
@@ -157,8 +136,8 @@
 			{/if}
 		</div>
 		<h1 class="text-xl font-semibold">{m.edit_task()}</h1>
-		{#if task && (task.custom_id ?? task.id)}
-			<span class="text-sm text-muted-foreground font-mono ml-2">{task.custom_id ?? task.id}</span>
+		{#if task && getTaskDisplayId(task) !== '—'}
+			<span class="text-sm text-muted-foreground font-mono ml-2">{getTaskDisplayId(task)}</span>
 		{/if}
 	</div>
 
@@ -168,7 +147,7 @@
 				<span class="text-sm font-medium text-muted-foreground">{m.task_status()}:</span>
 				<DropdownMenu>
 					<DropdownMenuTrigger class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
-						<span class="badge-trigger inline-flex items-center gap-1 cursor-pointer hover:bg-accent transition-colors"
+						<span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium cursor-pointer hover:bg-accent transition-colors"
 							style="background: {task.status?.color
 								? `color-mix(in srgb, ${task.status.color} 20%, transparent)`
 								: 'transparent'}; border-color: {task.status?.color ?? 'var(--border)'}; color: {task.status?.color ?? 'inherit'}"
@@ -228,7 +207,7 @@
 						<Tooltip.Trigger>
 							<button
 								type="button"
-								class="check-badge rounded-full p-1.5 transition-colors disabled:opacity-50"
+								class="text-muted-foreground rounded-full p-1.5 transition-colors disabled:opacity-50 hover:enabled:text-green-500"
 								onclick={markTaskClosed}
 								disabled={markClosedSubmitting}
 								aria-label={m.mark_task_closed()}
@@ -259,7 +238,7 @@
 						<Tooltip.Trigger>
 							<button
 								type="button"
-								class="check-badge rounded-full p-1.5 transition-colors disabled:opacity-50"
+								class="text-muted-foreground rounded-full p-1.5 transition-colors disabled:opacity-50 hover:enabled:text-green-500"
 								onclick={markTaskClosed}
 								disabled={markClosedSubmitting}
 								aria-label={m.mark_task_closed()}
@@ -311,7 +290,7 @@
 				<span class="text-sm font-medium text-muted-foreground">{m.time_estimate()}:</span>
 				<p class="text-sm mt-0.5">
 					{#if task.time_estimate && task.time_estimate > 0}
-						{m.hours_format({ hours: formatHours(task.time_estimate) })}
+						{m.hours_format({ hours: formatHoursFromMs(task.time_estimate) })}
 					{:else}
 						<span class="text-muted-foreground">—</span>
 					{/if}
@@ -321,7 +300,7 @@
 				<span class="text-sm font-medium text-muted-foreground">{m.time_spent()}:</span>
 				<p class="text-sm mt-0.5">
 					{#if timeTrackedMs > 0}
-						{m.hours_format({ hours: formatHours(timeTrackedMs) })}
+						{m.hours_format({ hours: formatHoursFromMs(timeTrackedMs) })}
 					{:else}
 						<span class="text-muted-foreground">{m.no_time_tracked()}</span>
 					{/if}
@@ -344,23 +323,26 @@
 			{#if comments && comments.length > 0}
 				<ul class="space-y-4 mb-6">
 					{#each comments as comment (comment.id)}
+						{@const commentDate = comment.date ?? comment.date_added}
 						<li
 							class="rounded-lg border border-border bg-muted/30 p-4"
 							aria-label="Comment by {comment.user?.username ?? 'Unknown'}"
 						>
 							<div class="flex items-center justify-between gap-2 mb-2">
-								<span
-									class="text-sm font-medium"
-									style="color: {comment.user?.color ?? 'inherit'}"
-								>
-									{comment.user?.username ?? 'Unknown'}
+								<span class="flex items-center gap-2 flex-wrap text-sm">
+									<span
+										class="font-medium"
+										style="color: {comment.user?.color ?? 'inherit'}"
+									>
+										{comment.user?.username ?? 'Unknown'}
+									</span>
+									<time
+										class="text-muted-foreground text-xs"
+										datetime={isValidDate(commentDate) ? new Date(commentDate).toISOString() : ''}
+									>
+										{formatCommentDateTime(commentDate, locale) || '—'}
+									</time>
 								</span>
-								<time
-									class="text-muted-foreground text-xs"
-									datetime={isValidDate(comment.date) ? new Date(comment.date).toISOString() : ''}
-								>
-									{formatCommentDate(comment.date) || '—'}
-								</time>
 							</div>
 							<p class="text-sm whitespace-pre-wrap break-words">
 								{comment.comment_text ?? ''}
@@ -431,34 +413,3 @@
 		<p class="text-muted-foreground mt-4">{m.error_prefix({ message: 'Task not found' })}</p>
 	{/if}
 </div>
-
-<style>
-	.task-edit {
-		padding: 2rem;
-		max-width: 42rem;
-	}
-
-	.task-edit-header {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.badge-trigger {
-		display: inline-flex;
-		align-items: center;
-		border-radius: 9999px;
-		border-width: 1px;
-		padding: 0.125rem 0.5rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-	}
-
-	.check-badge {
-		color: var(--muted-foreground);
-	}
-
-	.check-badge:hover:not(:disabled) {
-		color: #22c55e;
-	}
-</style>

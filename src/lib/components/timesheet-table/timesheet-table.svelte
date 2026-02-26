@@ -13,25 +13,40 @@
 	import { SvelteDate } from "svelte/reactivity";
 	import * as m from "$lib/paraglide/messages.js";
 	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-	import { cn, toLocalDateKey } from "$lib/utils.js";
+	import {
+		cn,
+		toLocalDateKey,
+		formatDayCellLabel,
+		formatHoursWithUnit,
+		getInitials,
+		getTaskDisplayId,
+		getPrevMonth,
+		getNextMonth,
+		isWeekend
+	} from "$lib/utils.js";
 	import {
 		assignSlotsToFutureWorkingDays,
 		buildTaskSlotsFromEstimatedTasks,
 		getStartOfTodayMs,
 		MAX_HOURS_DEFAULT
 	} from "$lib/utils/estimatePrediction.js";
-	import type { DayDetails } from "./types.js";
-	import type { UserTimesheet } from "./types.js";
+	import type { DayDetails, TimesheetUser, UserTimesheet } from "./types.js";
+	import { UsersDropdown } from "$lib/components/users-dropdown/index.js";
 	import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 	import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
 	interface Props {
 		usersTimesheets: UserTimesheet[];
+		class?: string;
 		year?: number;
 		month?: number; // 0–11
 		teamId?: string;
 		currentUserId?: number; // ClickUp user id for prediction row
 		currentUser?: { id: number; username: string; initials?: string; color?: string }; // fallback when timesheets empty
+		users?: TimesheetUser[];
+		selectedUserIds?: number[];
+		onUsersChange?: (ids: number[]) => void;
+		usersDropdownDisabled?: boolean;
 		onMonthChange?: (year: number, month: number) => void;
 		isLoading?: boolean;
 		error?: Error | null;
@@ -39,11 +54,16 @@
 
 	let {
 		usersTimesheets = [],
+		class: className,
 		year = new Date().getFullYear(),
 		month = new Date().getMonth(),
 		teamId,
 		currentUserId,
 		currentUser,
+		users,
+		selectedUserIds = [],
+		onUsersChange,
+		usersDropdownDisabled = false,
 		onMonthChange,
 		isLoading: _isLoading = false,
 		error: _error = null
@@ -118,7 +138,6 @@
 		}[] = [];
 		for (let d = 1; d <= last.getDate(); d++) {
 			const date = new Date(year, month, d);
-			const dayOfWeek = date.getDay();
 			const dateKey = toLocalDateKey(date);
 			const isFuture = date.getTime() >= todayStartMs;
 			days.push({
@@ -126,7 +145,7 @@
 				day: d,
 				dayName: dayFormatter.format(date),
 				key: dateKey,
-				isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+				isWeekend: isWeekend(date),
 				isFuture
 			});
 		}
@@ -134,14 +153,12 @@
 	});
 
 	function prevMonth() {
-		const newMonth = month === 0 ? 11 : month - 1;
-		const newYear = month === 0 ? year - 1 : year;
+		const { year: newYear, month: newMonth } = getPrevMonth(year, month);
 		onMonthChange?.(newYear, newMonth);
 	}
 
 	function nextMonth() {
-		const newMonth = month === 11 ? 0 : month + 1;
-		const newYear = month === 11 ? year + 1 : year;
+		const { year: newYear, month: newMonth } = getNextMonth(year, month);
 		onMonthChange?.(newYear, newMonth);
 	}
 
@@ -163,38 +180,78 @@
 	const MAX_HOURS = MAX_HOURS_DEFAULT;
 </script>
 
-<div class="timesheet-table-wrapper">
-	<div class="month-nav">
-		<Button variant="outline" size="icon" onclick={prevMonth} aria-label={m.aria_previous_month()}>
-			<ChevronLeft class="size-4" />
-		</Button>
-		<span class="month-label">{monthLabel}</span>
-		<Button variant="outline" size="icon" onclick={nextMonth} aria-label={m.aria_next_month()}>
-			<ChevronRight class="size-4" />
-		</Button>
+<Tooltip.Provider>
+<div class={cn('flex flex-col gap-4', className)}>
+	<div class="flex items-center justify-between gap-4 flex-wrap">
+		<div class="flex items-center gap-4 text-xs text-muted-foreground shrink-0 mr-4">
+			<span class="flex items-center gap-1.5">
+				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[hsl(217_91%_60%)]"></span>
+				{m.timesheet_legend_tracked()}
+			</span>
+			<span class="flex items-center gap-1.5">
+				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[hsl(25_95%_53%)]"></span>
+				{m.timesheet_legend_over()}
+			</span>
+			<span class="flex items-center gap-1.5">
+				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[var(--capacity-pred-2)]"></span>
+				{m.timesheet_legend_predicted()}
+			</span>
+		</div>
+		<div class="flex items-center gap-4">
+			<Button variant="outline" size="icon" onclick={prevMonth} aria-label={m.aria_previous_month()}>
+				<ChevronLeft class="size-4" />
+			</Button>
+			<span class="font-semibold min-w-40 text-center" style="font-family: var(--font-heading)">{monthLabel}</span>
+			<Button variant="outline" size="icon" onclick={nextMonth} aria-label={m.aria_next_month()}>
+				<ChevronRight class="size-4" />
+			</Button>
+		</div>
+		{#if users && users.length > 0}
+			{#if usersDropdownDisabled}
+				<Tooltip.Root>
+					<Tooltip.Trigger class="cursor-not-allowed">
+						<UsersDropdown
+							users={users}
+							selectedIds={selectedUserIds}
+							onSelect={() => {}}
+							disabled={true}
+						/>
+					</Tooltip.Trigger>
+					<Tooltip.Content side="bottom">
+						{m.timesheets_multi_user_disabled_tooltip()}
+					</Tooltip.Content>
+				</Tooltip.Root>
+			{:else}
+				<UsersDropdown
+					users={users}
+					selectedIds={selectedUserIds}
+					onSelect={(ids) => onUsersChange?.(ids)}
+					disabled={false}
+				/>
+			{/if}
+		{/if}
 	</div>
 
-	<Tooltip.Provider>
-		<div class="table-scroll-container pb-10">
-			<table class="timesheet-table">
+	<div class="overflow-x-auto border border-border rounded-lg pb-10">
+			<table class="w-max min-w-full table-fixed border-separate border-spacing-0">
 			<TableHeader>
 				<TableRow>
-					<TableHead class="sticky-user-col sticky left-0 bg-background z-3">{m.user()}</TableHead>
+					<TableHead class="sticky left-0 z-[3] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">{m.user()}</TableHead>
 					{#each daysInMonth as dayItem (dayItem.key)}
-						<TableHead class={cn("day-col", dayItem.isWeekend && "bg-muted")}>{dayItem.dayName} {dayItem.day}</TableHead>
+						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle", dayItem.isWeekend && "bg-muted")}>{dayItem.dayName} {dayItem.day}</TableHead>
 					{/each}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
 				{#each displayTimesheets as { user, hoursByDay } (user.id)}
 					<TableRow>
-						<TableCell class="sticky-user-col relative font-medium sticky left-0 bg-background z-3">
+						<TableCell class="sticky left-0 z-[2] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] relative font-medium">
 							<span
-								class="user-cell"
+								class="flex items-center gap-2"
 								style="--user-color: {user.color ?? '#6b7280'}"
 							>
-								<span class="user-initials">{user.initials ?? user.username.slice(0, 2).toUpperCase()}</span>
-								<span class="user-name">{user.username}</span>
+								<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--user-color)] text-white text-xs font-semibold shrink-0">{getInitials(user.username, user.initials)}</span>
+								<span class="overflow-hidden text-ellipsis">{user.username}</span>
 							</span>
 						</TableCell>
 						{#each daysInMonth as dayItem (dayItem.key)}
@@ -204,12 +261,11 @@
 							{@const isOverMax = hours > MAX_HOURS}
 							{@const barHeight = Math.min(hours / MAX_HOURS, 1) * 100}
 							{@const isPredicted = effective.isPredicted}
-							<TableCell class={cn("day-col day-cell relative", dayItem.isWeekend && "bg-muted")}>
+							<TableCell class={cn("w-14 min-w-14 max-w-14 h-10 p-0 align-bottom text-center relative", dayItem.isWeekend && "bg-muted")}>
 								<div
 									class={cn(
-										"day-bar cursor-default",
-										isOverMax && "day-bar--over",
-										isPredicted && "day-bar--predicted"
+										"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0.5 rounded-[2px] cursor-default transition-[height,background] duration-150 ease-out",
+										isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-[var(--capacity-pred-2)]" : "bg-[hsl(217_91%_60%)]"
 									)}
 									style="--bar-height: {barHeight}%;"
 								></div>
@@ -225,7 +281,7 @@
 										{#if dayDetails?.tasks?.length}
 											<div class="min-w-48 space-y-1.5 py-0.5">
 												<div class="font-medium text-xs border-b border-border pb-1 mb-1">
-													{dayItem.day}. {dayItem.key}
+													{formatDayCellLabel(dayItem.date, locale)}
 													{#if isPredicted}
 														<span class="text-muted-foreground font-normal"> {m.capacity_predicted()}</span>
 													{/if}
@@ -238,31 +294,31 @@
 																	href={resolve(`/${locale}/tasks-by-spaces/${task.id}`)}
 																	class="hover:underline focus:outline-none focus:underline text-primary"
 																>
-																	{#if task.custom_id ?? task.id}
-																		<span class="font-bold">{task.custom_id ?? task.id}</span> {task.name}
+																	{#if getTaskDisplayId(task) !== '—'}
+																		<span class="font-bold">{getTaskDisplayId(task)}</span> {task.name}
 																	{:else}
 																		{task.name}
 																	{/if}
 																</a>
 															{:else}
-																{#if task.custom_id ?? task.id}
-																	<span class="font-bold">{task.custom_id ?? task.id}</span> {task.name}
+																{#if getTaskDisplayId(task) !== '—'}
+																	<span class="font-bold">{getTaskDisplayId(task)}</span> {task.name}
 																{:else}
 																	{task.name}
 																{/if}
 															{/if}
 														</span>
-														<span class="tabular-nums shrink-0">{task.hours.toFixed(1)} h</span>
+														<span class="tabular-nums shrink-0">{formatHoursWithUnit(task.hours)}</span>
 													</div>
 												{/each}
 												<div class="flex justify-between gap-4 text-xs font-medium pt-1 border-t border-border">
 													<span>{m.tooltip_total()}</span>
-													<span class="tabular-nums">{hours.toFixed(1)} h</span>
+													<span class="tabular-nums">{formatHoursWithUnit(hours)}</span>
 												</div>
 											</div>
 										{:else}
 											<span class="text-xs">
-												{hours > 0 ? `${hours.toFixed(1)} h` : m.no_time_tracked()}
+												{hours > 0 ? formatHoursWithUnit(hours) : m.no_time_tracked()}
 												{#if isPredicted}
 													<span class="text-muted-foreground"> {m.capacity_predicted()}</span>
 												{/if}
@@ -277,116 +333,5 @@
 			</TableBody>
 			</table>
 		</div>
-	</Tooltip.Provider>
 </div>
-
-<style>
-	.timesheet-table-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.month-nav {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 1rem;
-	}
-
-	.month-label {
-		font-weight: 600;
-		min-width: 10rem;
-		text-align: center;
-		font-family: var(--font-heading);
-	}
-
-	.table-scroll-container {
-		overflow-x: auto;
-		border: 1px solid var(--border);
-		border-radius: 0.5rem;
-	}
-
-	.timesheet-table {
-		width: max-content;
-		min-width: 100%;
-		table-layout: fixed;
-		border-collapse: separate;
-		border-spacing: 0;
-	}
-
-	.sticky-user-col {
-		position: sticky;
-		left: 0;
-		z-index: 2;
-		background: var(--background);
-		min-width: 10rem;
-		white-space: nowrap;
-		box-shadow: 2px 0 4px -2px rgb(0 0 0 / 0.1);
-	}
-
-	/* Ensure header sticky cell has proper background over body */
-	:global(thead .sticky-user-col) {
-		z-index: 3;
-	}
-
-	:global(.day-col) {
-		width: 3.5rem;
-		min-width: 3.5rem;
-		max-width: 3.5rem;
-		text-align: center;
-		padding: 0.25rem;
-		vertical-align: middle;
-	}
-
-	:global(.day-col.day-cell) {
-		height: 2.5rem;
-		padding: 0;
-		vertical-align: bottom;
-	}
-
-	.day-bar {
-		position: absolute;
-		bottom: 2px;
-		left: 2px;
-		right: 2px;
-		height: var(--bar-height);
-		min-height: 2px;
-		background: hsl(217 91% 60%);
-		border-radius: 2px;
-		transition: height 0.15s ease, background 0.15s ease;
-	}
-
-	.day-bar--over {
-		background: hsl(25 95% 53%);
-	}
-
-	.day-bar--predicted {
-		background: var(--capacity-pred-2);
-	}
-
-	.user-cell {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.user-initials {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 1.75rem;
-		height: 1.75rem;
-		border-radius: 0.375rem;
-		background: var(--user-color);
-		color: white;
-		font-size: 0.75rem;
-		font-weight: 600;
-		flex-shrink: 0;
-	}
-
-	.user-name {
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-</style>
+</Tooltip.Provider>

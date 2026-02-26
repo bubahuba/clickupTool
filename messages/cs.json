@@ -18,6 +18,7 @@
 	"loading_tasks": "Načítání úkolů...",
 	"no_spaces": "Žádné prostory nejsou k dispozici.",
 	"no_tasks": "V tomto prostoru nejsou žádné úkoly.",
+	"no_status": "Bez stavu",
 	"edit_task": "Upravit úkol",
 	"task_status": "Stav",
 	"status_updated": "Stav byl aktualizován.",
@@ -54,5 +55,6 @@
 	"login_placeholder": "ClickUp API klíč",
 	"login_submit": "Přihlásit",
 	"login_error_invalid": "Neplatný API klíč. Zkontrolujte token a zkuste to znovu.",
-	"nav_logout": "Odhlásit"
+	"nav_logout": "Odhlásit",
+	"select_users": "Vybrat uživatele","timesheet_legend_tracked":"Evidováno","timesheet_legend_over":"8+ h","timesheet_legend_predicted":"Předpovězeno","timesheets_multi_user_forbidden": "Zobrazení výkazů ostatních uživatelů vyžaduje oprávnění administrátora pracovního prostoru. Zobrazují se pouze vaše výkazy.","timesheets_multi_user_disabled_tooltip": "Pro zobrazení ostatních uživatelů je vyžadován administrátor pracovního prostoru"
 }

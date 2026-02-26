@@ -2,7 +2,11 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchClickUpTeams, fetchClickUpTimeEntries } from '$lib/api/clickup-fetch.js';
 import { getToken } from '$lib/auth/server.js';
-import { toLocalDateKey } from '$lib/utils.js';
+import {
+	toDateKeyInTimezone,
+	parseCommaSeparatedIds,
+	parseIntSafe
+} from '$lib/utils.js';
 import type {
 	UserTimesheet,
 	TimesheetUser,
@@ -10,20 +14,6 @@ import type {
 	DayDetails,
 	DayTask
 } from '$lib/components/timesheet-table/types.js';
-
-/** Format date as YYYY-MM-DD in a specific timezone. */
-function toDateKeyInTimezone(date: Date, timezone?: string): string {
-	if (timezone) {
-		const formatter = new Intl.DateTimeFormat('en-CA', {
-			timeZone: timezone,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit'
-		});
-		return formatter.format(date);
-	}
-	return toLocalDateKey(date);
-}
 
 export const GET: RequestHandler = async (event) => {
 	const token = getToken(event);
@@ -34,16 +24,21 @@ export const GET: RequestHandler = async (event) => {
 
 	const teamId = url.searchParams.get('teamId');
 	const timezone = url.searchParams.get('timezone') ?? undefined;
-	const monthsBack = parseInt(url.searchParams.get('monthsBack') ?? '', 10);
-	const year = parseInt(url.searchParams.get('year') ?? '', 10);
-	const month = parseInt(url.searchParams.get('month') ?? '', 10);
+	const assigneeParam = url.searchParams.get('assignee') ?? undefined;
+	const monthsBack = parseIntSafe(url.searchParams.get('monthsBack'), 10);
+	const year = parseIntSafe(url.searchParams.get('year'), 10);
+	const month = parseIntSafe(url.searchParams.get('month'), 10);
+
+	const assigneeIds = assigneeParam
+		? parseCommaSeparatedIds(assigneeParam)
+		: undefined;
 
 	if (!teamId) {
 		return json({ error: 'teamId is required' }, { status: 400 });
 	}
 
-	const teamIdNum = parseInt(teamId, 10);
-	if (isNaN(teamIdNum)) {
+	const teamIdNum = parseIntSafe(teamId, 10);
+	if (Number.isNaN(teamIdNum)) {
 		return json({ error: 'Invalid teamId' }, { status: 400 });
 	}
 
@@ -72,7 +67,7 @@ export const GET: RequestHandler = async (event) => {
 	try {
 		const [teamsRes, entriesRes] = await Promise.all([
 			fetchClickUpTeams(token),
-			fetchClickUpTimeEntries(token, teamIdNum, startDateMs, endDateMs)
+			fetchClickUpTimeEntries(token, teamIdNum, startDateMs, endDateMs, assigneeIds)
 		]);
 
 		const team = teamsRes.teams.find((t) => t.id === teamIdNum);
@@ -154,10 +149,19 @@ export const GET: RequestHandler = async (event) => {
 			}
 		}
 
-		const usersTimesheets: UserTimesheet[] = Array.from(userMap.values());
+		let usersTimesheets: UserTimesheet[] = Array.from(userMap.values());
+		if (assigneeIds && assigneeIds.length > 0) {
+			const assigneeSet = new Set(assigneeIds);
+			usersTimesheets = usersTimesheets.filter((ut) => assigneeSet.has(ut.user.id));
+		}
 		return json({ usersTimesheets });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to fetch timesheets';
-		return json({ error: message }, { status: 500 });
+		// Preserve 403 when user lacks permission to view others' time entries (e.g. TIMEENTRY_059)
+		const is403 = message.includes('403') || message.includes('TIMEENTRY_059');
+		return json(
+			{ error: message, multiUserForbidden: is403 },
+			{ status: is403 ? 403 : 500 }
+		);
 	}
 };

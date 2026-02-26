@@ -3,8 +3,14 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import { cn } from '$lib/utils.js';
 	import { persistedToken, syncTokenToCookie } from '$lib/auth/token.js';
 
+	interface Props {
+		class?: string;
+	}
+
+	let { class: className }: Props = $props();
 	let tokenInput = $state('');
 	let error = $state('');
 	let loading = $state(false);
@@ -43,7 +49,7 @@
 	}
 </script>
 
-<div class="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
+<div class={cn('flex min-h-svh flex-col items-center justify-center gap-6 p-4', className)}>
 	<form
 		class="flex w-full max-w-sm flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm"
 		onsubmit={handleSubmit}

@@ -13,6 +13,26 @@ export function toLocalDateKey(date: Date): string {
 	return `${y}-${m}-${d}`;
 }
 
+export {
+	formatDayCellLabel,
+	formatCommentDateTime,
+	isWeekend,
+	getStartOfDay,
+	getEndOfDay,
+	isValidDate,
+	getPrevMonth,
+	getNextMonth,
+	toDateKeyInTimezone
+} from './utils/dates.js';
+
+export { formatHours, formatHoursFromMs, formatHoursWithUnit } from './utils/numbers.js';
+export { getInitials, getTaskDisplayId } from './utils/strings.js';
+export {
+	getSessionStorageBoolean,
+	setSessionStorageBoolean
+} from './utils/storage.js';
+export { parseIntSafe, parseCommaSeparatedIds } from './utils/validation.js';
+
 export type {
 	WithElementRef,
 	WithoutChild,

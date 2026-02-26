@@ -41,13 +41,17 @@ export async function fetchClickUpTimeEntries(
 	token: string,
 	teamId: number,
 	startDateMs: number,
-	endDateMs: number
+	endDateMs: number,
+	assigneeIds?: number[]
 ): Promise<ClickUpTimeEntriesResponse> {
 	const params = new URLSearchParams({
 		start_date: String(startDateMs),
 		end_date: String(endDateMs),
 		custom_task_ids: 'true'
 	});
+	if (assigneeIds && assigneeIds.length > 0) {
+		params.set('assignee', assigneeIds.join(','));
+	}
 	const res = await fetch(
 		`${BASE}/v2/team/${teamId}/time_entries?${params}`,
 		{ headers: { Authorization: token } }

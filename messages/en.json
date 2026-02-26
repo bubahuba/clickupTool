@@ -18,6 +18,7 @@
 	"loading_tasks": "Loading tasks...",
 	"no_spaces": "No spaces available.",
 	"no_tasks": "No tasks in this space.",
+	"no_status": "No status",
 	"edit_task": "Edit task",
 	"task_status": "Status",
 	"status_updated": "Status updated.",
@@ -54,5 +55,7 @@
 	"login_placeholder": "ClickUp API key",
 	"login_submit": "Log in",
 	"login_error_invalid": "Invalid API key. Please check your token and try again.",
-	"nav_logout": "Log out"
+	"nav_logout": "Log out",
+	"select_users": "Select users",
+	"timesheet_legend_tracked":"Tracked","timesheet_legend_over":"8+ h","timesheet_legend_predicted":"Predicted","timesheets_multi_user_forbidden": "Viewing others' timesheets requires Workspace Admin permissions. Showing only your timesheets.","timesheets_multi_user_disabled_tooltip": "Workspace Admin required to view other users"
 }

@@ -104,7 +104,9 @@ export interface ClickUpTaskComment {
 	id: string;
 	comment_text: string;
 	user: ClickUpCommentUser;
-	date: number; // Unix timestamp in ms
+	/** Unix timestamp in ms - ClickUp returns as string e.g. "1772134561016" */
+	date?: number | string;
+	date_added?: number | string;
 	/**
 	 * Rich text format - array of { text, attributes } objects.
 	 * Use comment_text for plain text display.

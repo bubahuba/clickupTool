@@ -9,10 +9,11 @@
 		taskId: string;
 		initialName: string;
 		initialDescription: string;
+		class?: string;
 		onSuccess?: () => void | Promise<void>;
 	}
 
-	let { taskId, initialName, initialDescription, onSuccess }: Props = $props();
+	let { taskId, initialName, initialDescription, class: className, onSuccess }: Props = $props();
 
 	let name = $state('');
 	let description = $state('');
@@ -65,7 +66,7 @@
 	}
 </script>
 
-<form onsubmit={handleSubmit}>
+<form class={cn(className)} onsubmit={handleSubmit}>
 	<div class="space-y-4">
 		<div class="space-y-2">
 			<Label for="task-name">{m.task_name()}</Label>
