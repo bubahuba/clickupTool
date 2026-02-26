@@ -125,7 +125,7 @@
 
 	async function saveTimeEstimate() {
 		if (!task?.id || estimateSubmitting) return;
-		const trimmed = estimateInputValue.trim();
+		const trimmed = String(estimateInputValue ?? '').trim();
 		const hours = trimmed === '' ? 0 : parseFloat(trimmed);
 		if (isNaN(hours) || hours < 0) {
 			toast.error('Please enter a valid non-negative number');
@@ -339,7 +339,13 @@
 				<span class="text-sm font-medium text-muted-foreground">{m.time_estimate()}:</span>
 				<div class="text-sm mt-0.5 flex items-center gap-2">
 					{#if estimateEditing}
-						<div class="flex items-center gap-2">
+						<form
+							class="flex items-center gap-2"
+							onsubmit={(e) => {
+								e.preventDefault();
+								saveTimeEstimate();
+							}}
+						>
 							<Input
 								type="number"
 								min="0"
@@ -347,18 +353,18 @@
 								placeholder="0"
 								class="w-20 h-8 text-sm"
 								bind:value={estimateInputValue}
-								onkeydown={(e) => e.key === 'Enter' && saveTimeEstimate()}
 							/>
 							<span class="text-muted-foreground">h</span>
 							<Button
+								type="submit"
 								size="sm"
 								variant="default"
-								onclick={saveTimeEstimate}
 								disabled={estimateSubmitting}
 							>
 								{m.save_task()}
 							</Button>
 							<Button
+								type="button"
 								size="sm"
 								variant="ghost"
 								onclick={cancelEditEstimate}
@@ -366,7 +372,7 @@
 							>
 								{m.cancel()}
 							</Button>
-						</div>
+						</form>
 					{:else}
 						{#if task.time_estimate && task.time_estimate > 0}
 							{m.hours_format({ hours: formatHoursFromMs(task.time_estimate) })}

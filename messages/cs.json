@@ -50,7 +50,7 @@
 	"capacity_grid_title": "Kapacita (posledních 12 měsíců)",
 	"capacity_legend_less": "Méně",
 	"capacity_legend_more": "8+ h",
-	"capacity_grid_title_prediction": "Odhad kapacit na 3 měsíce",
+	"capacity_grid_title_prediction": "Odhad kapacit na 12 měsíců",
 	"capacity_prediction_toggle": "Zobrazit předpověď",
 	"capacity_predicted": "(předpovězeno)",
 	"login_title": "Přihlášení",

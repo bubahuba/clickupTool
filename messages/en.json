@@ -50,7 +50,7 @@
 	"capacity_grid_title": "Capacity (last 12 months)",
 	"capacity_legend_less": "Less",
 	"capacity_legend_more": "8+ h",
-	"capacity_grid_title_prediction": "Capacity estimate for 3 months",
+	"capacity_grid_title_prediction": "Capacity estimate for 12 months",
 	"capacity_prediction_toggle": "Show prediction",
 	"capacity_predicted": "(predicted)",
 	"login_title": "Log in",

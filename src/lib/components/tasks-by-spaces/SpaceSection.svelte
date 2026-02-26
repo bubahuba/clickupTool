@@ -92,13 +92,13 @@
 	}
 
 	function isStatusGroupExpanded(statusKey: string) {
-		return statusExpandedState[statusGroupKey(statusKey)] ?? true;
+		return statusExpandedState[statusGroupKey(statusKey)] ?? false;
 	}
 
 	function toggleStatusGroup(statusKey: string) {
 		statusGroupsExpanded.update((state) => {
 			const key = statusGroupKey(statusKey);
-			return { ...state, [key]: !(state[key] ?? true) };
+			return { ...state, [key]: !(state[key] ?? false) };
 		});
 	}
 </script>

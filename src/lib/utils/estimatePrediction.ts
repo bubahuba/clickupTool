@@ -52,7 +52,7 @@ export function buildTaskSlotsFromEstimatedTasks(
 export function assignSlotsToFutureWorkingDays(
 	todayStartMs: number,
 	taskSlots: TaskSlot[],
-	monthsFuture: number = 3,
+	monthsFuture: number = 12,
 	maxHours: number = MAX_HOURS_DEFAULT
 ): Record<string, DayDetails> {
 	const today = new Date(todayStartMs);

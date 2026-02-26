@@ -78,14 +78,14 @@
 		)
 	);
 
-	// Month is viewable for prediction: has any day within our prediction window (today .. today+3 months)
+	// Month is viewable for prediction: has any day within our prediction window (today .. today+12 months)
 	const shouldFetchPrediction = $derived.by(() => {
 		const firstDay = new SvelteDate(year, month, 1);
 		firstDay.setHours(0, 0, 0, 0);
 		const lastDay = new SvelteDate(year, month + 1, 0);
 		lastDay.setHours(23, 59, 59, 999);
-		const predictionEndMs = todayStartMs + 90 * 24 * 60 * 60 * 1000; // ~3 months
-		// Include month if any of its days overlap [today, today+3months]
+		const predictionEndMs = todayStartMs + 366 * 24 * 60 * 60 * 1000; // ~12 months
+		// Include month if any of its days overlap [today, today+12months]
 		return lastDay.getTime() >= todayStartMs && firstDay.getTime() <= predictionEndMs;
 	});
 
@@ -108,7 +108,7 @@
 	const estimatedTasks = $derived(estimatedCapacityQuery.data ?? []);
 	const taskSlots = $derived(buildTaskSlotsFromEstimatedTasks(estimatedTasks, MAX_HOURS_DEFAULT));
 	const taskByDate = $derived.by(() =>
-		assignSlotsToFutureWorkingDays(todayStartMs, taskSlots, 3)
+		assignSlotsToFutureWorkingDays(todayStartMs, taskSlots, 12)
 	);
 
 	// When timesheets API returns empty, or current user is missing, ensure we show current user for prediction

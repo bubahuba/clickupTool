@@ -44,7 +44,7 @@
 
 	const MAX_HOURS = MAX_HOURS_DEFAULT;
 	const MONTHS_BACK = 12;
-	const MONTHS_FUTURE = 3; // prediction mode: only next 3 months
+	const MONTHS_FUTURE = 12; // prediction mode: next 12 months (full year)
 	const CELL_SIZE = "1rem";
 	const CELL_GAP = "2px";
 
@@ -167,7 +167,7 @@
 			now.getMonth(),
 			now.getDate(),
 		);
-		// In prediction mode: only next 3 months, no history. Otherwise: last 12 months ending today.
+		// In prediction mode: next 12 months, no history. Otherwise: last 12 months ending today.
 		let startMonday: Date;
 		let gridEndDate: Date;
 		if (predictionMode) {
