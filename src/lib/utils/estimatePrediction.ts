@@ -18,8 +18,8 @@ export interface TaskSlot {
 }
 
 /**
- * Split estimated tasks into 8h (or maxHours) chunks. Tasks <= maxHours = 1 slot;
- * tasks > maxHours = split into chunks across slots.
+ * Build task slots for assignment. Tasks <= 8h stay as one slot (not split).
+ * Tasks > 8h are split into 8h chunks plus a final remainder < 8h.
  */
 export function buildTaskSlotsFromEstimatedTasks(
 	estimatedTasks: EstimatedTask[],
@@ -30,7 +30,8 @@ export function buildTaskSlotsFromEstimatedTasks(
 		let remainingHours = task.time_estimate / (1000 * 60 * 60);
 		if (remainingHours <= 0) continue;
 		while (remainingHours > 0) {
-			const chunkHours = Math.min(maxHours, remainingHours);
+			// Tasks <= 8h: one slot. Tasks > 8h: 8h chunks, then remainder as one slot
+			const chunkHours = remainingHours <= maxHours ? remainingHours : maxHours;
 			slots.push({
 				id: task.id,
 				name: task.name,
@@ -44,13 +45,15 @@ export function buildTaskSlotsFromEstimatedTasks(
 }
 
 /**
- * Assign one slot per future working day (Mon–Fri). Returns Record<dateKey, DayDetails>.
- * Uses same logic as capacity-grid: iterate from today, skip weekends, assign slots in order.
+ * Assign slots to future working days (Mon–Fri). Packs multiple tasks into a day
+ * if their sum fits within maxHours. Splits only tasks > 8h across days.
+ * Returns Record<dateKey, DayDetails>.
  */
 export function assignSlotsToFutureWorkingDays(
 	todayStartMs: number,
 	taskSlots: TaskSlot[],
-	monthsFuture: number = 3
+	monthsFuture: number = 3,
+	maxHours: number = MAX_HOURS_DEFAULT
 ): Record<string, DayDetails> {
 	const today = new Date(todayStartMs);
 	const futureEnd = new Date(
@@ -64,20 +67,32 @@ export function assignSlotsToFutureWorkingDays(
 	while (d <= futureEnd && slotIndex < taskSlots.length) {
 		const dow = d.getDay();
 		if (dow !== 0 && dow !== 6) {
-			const slot = taskSlots[slotIndex];
 			const dateKey = toLocalDateKey(d);
-			result[dateKey] = {
-				total: slot.hours,
-				tasks: [
-					{
+			const tasks: DayDetails['tasks'] = [];
+			let capacityLeft = maxHours;
+			// Pack slots into this day until full or next slot doesn't fit
+			while (slotIndex < taskSlots.length && capacityLeft > 0) {
+				const slot = taskSlots[slotIndex];
+				if (slot.hours <= capacityLeft) {
+					tasks.push({
 						id: slot.id,
 						custom_id: slot.custom_id,
 						name: slot.name,
 						hours: slot.hours
-					}
-				]
-			};
-			slotIndex++;
+					});
+					capacityLeft -= slot.hours;
+					slotIndex++;
+				} else {
+					// Slot doesn't fit (don't split tasks < 8h); use next day
+					break;
+				}
+			}
+			if (tasks.length > 0) {
+				result[dateKey] = {
+					total: tasks.reduce((s, t) => s + t.hours, 0),
+					tasks
+				};
+			}
 		}
 		d.setDate(d.getDate() + 1);
 	}
