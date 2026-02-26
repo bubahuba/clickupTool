@@ -9,6 +9,12 @@
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { Switch } from '$lib/components/ui/switch/index.js';
 	import { toLocalDateKey } from '$lib/utils.js';
+	import {
+		assignSlotsToFutureWorkingDays,
+		buildTaskSlotsFromEstimatedTasks,
+		getStartOfTodayMs,
+		MAX_HOURS_DEFAULT
+	} from '$lib/utils/estimatePrediction.js';
 	import type { DayDetails } from '$lib/components/timesheet-table/types.js';
 
 	const PREDICTION_STORAGE_KEY = 'capacity-prediction-mode';
@@ -36,7 +42,7 @@
 		error?: Error | null;
 	}
 
-	const MAX_HOURS = 8;
+	const MAX_HOURS = MAX_HOURS_DEFAULT;
 	const MONTHS_BACK = 12;
 	const MONTHS_FUTURE = 3; // prediction mode: only next 3 months
 	const CELL_SIZE = '1rem';
@@ -63,12 +69,6 @@
 		// path uses resolve() + search; rule flags goto(resolve(x)+y) pattern
 		/* eslint-disable-next-line svelte/no-navigation-without-resolve */
 		goto(resolve(url.pathname as import('$app/types').Pathname) + url.search, { replaceState: true });
-	}
-
-	function getStartOfTodayMs(): number {
-		const d = new SvelteDate();
-		d.setHours(0, 0, 0, 0);
-		return d.getTime();
 	}
 
 	const locale = $derived(page.params.locale ?? 'en');
@@ -126,55 +126,11 @@
 		return merged;
 	});
 
-	// Build slots: tasks <= 8h = 1 slot, tasks > 8h = split into 8h chunks across days
-	const taskSlots = $derived.by(() => {
-		const slots: Array<{ id: string; name: string; custom_id?: string; hours: number }> = [];
-		for (const task of estimatedTasks) {
-			let remainingHours = task.time_estimate / (1000 * 60 * 60);
-			if (remainingHours <= 0) continue;
-			while (remainingHours > 0) {
-				const chunkHours = Math.min(MAX_HOURS, remainingHours);
-				slots.push({
-					id: task.id,
-					name: task.name,
-					custom_id: task.custom_id,
-					hours: chunkHours
-				});
-				remainingHours -= chunkHours;
-			}
-		}
-		return slots;
-	});
+	const taskSlots = $derived(buildTaskSlotsFromEstimatedTasks(estimatedTasks, MAX_HOURS));
 
-	// Assign one slot per future working day. Record<dateKey, DayDetails>
-	const taskByDate = $derived.by(() => {
-		const today = new SvelteDate(getStartOfTodayMs());
-		const futureEnd = new SvelteDate(today.getFullYear(), today.getMonth() + MONTHS_FUTURE, today.getDate());
-		const result: Record<string, DayDetails> = {};
-		const d = new SvelteDate(today);
-		let slotIndex = 0;
-		while (d <= futureEnd && slotIndex < taskSlots.length) {
-			const dow = d.getDay();
-			if (dow !== 0 && dow !== 6) {
-				const slot = taskSlots[slotIndex];
-				const dateKey = toLocalDateKey(d);
-				result[dateKey] = {
-					total: slot.hours,
-					tasks: [
-						{
-							id: slot.id,
-							custom_id: slot.custom_id,
-							name: slot.name,
-							hours: slot.hours
-						}
-					]
-				};
-				slotIndex++;
-			}
-			d.setDate(d.getDate() + 1);
-		}
-		return result;
-	});
+	const taskByDate = $derived.by(() =>
+		assignSlotsToFutureWorkingDays(getStartOfTodayMs(), taskSlots, MONTHS_FUTURE)
+	);
 
 	const gridData = $derived.by(() => {
 		const now = new Date();

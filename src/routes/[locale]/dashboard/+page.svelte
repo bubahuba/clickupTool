@@ -92,6 +92,9 @@
 					usersTimesheets={usersTimesheets}
 					{year}
 					{month}
+					teamId={teamId?.toString()}
+					currentUserId={userQuery.data?.user?.id}
+					currentUser={userQuery.data?.user ? { id: userQuery.data.user.id, username: userQuery.data.user.username, initials: userQuery.data.user.initials, color: userQuery.data.user.color } : undefined}
 					onMonthChange={handleMonthChange}
 					isLoading={timesheetsQuery.isPending}
 					error={timesheetsQuery.error}
