@@ -21,6 +21,6 @@ export function parseCommaSeparatedIds(
 	if (param == null || param === '') return [];
 	return param
 		.split(',')
-		.map((s) => parseInt(s.trim(), 10))
-		.filter((n) => !Number.isNaN(n));
+		.map((segment) => parseInt(segment.trim(), 10))
+		.filter((num) => !Number.isNaN(num));
 }

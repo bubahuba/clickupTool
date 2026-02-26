@@ -96,7 +96,7 @@
 			{@render TooltipLabel()}
 		{/if}
 		<div class="grid gap-1.5">
-			{#each tooltipCtx.payload as item, i (item.key + i)}
+			{#each tooltipCtx.payload as item, itemIndex (item.key + itemIndex)}
 				{@const key = `${nameKey || item.key || item.name || "value"}`}
 				{@const itemConfig = getPayloadConfigFromPayload(chart.config, item, key)}
 				{@const indicatorColor = color || item.payload?.color || item.color}
@@ -111,7 +111,7 @@
 							value: item.value,
 							name: item.name,
 							item,
-							index: i,
+							index: itemIndex,
 							payload: tooltipCtx.payload,
 						})}
 					{:else}

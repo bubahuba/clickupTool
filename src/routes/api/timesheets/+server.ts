@@ -70,7 +70,7 @@ export const GET: RequestHandler = async (event) => {
 			fetchClickUpTimeEntries(token, teamIdNum, startDateMs, endDateMs, assigneeIds)
 		]);
 
-		const team = teamsRes.teams.find((t) => t.id === teamIdNum);
+		const team = teamsRes.teams.find((teamItem) => teamItem.id === teamIdNum);
 		const members = team?.members ?? [];
 
 		// Build user map from members
@@ -78,16 +78,16 @@ export const GET: RequestHandler = async (event) => {
 			number,
 			{ user: TimesheetUser; hoursByDay: DailyHours }
 		>();
-		for (const m of members) {
-			const u = m.user;
-			const uid = typeof u.id === 'string' ? parseInt(u.id, 10) : u.id;
+		for (const member of members) {
+			const user = member.user;
+			const uid = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
 			if (isNaN(uid)) continue;
 			userMap.set(uid, {
 				user: {
 					id: uid,
-					username: u.username,
-					initials: u.initials,
-					color: u.color
+					username: user.username,
+					initials: user.initials,
+					color: user.color
 				},
 				hoursByDay: {}
 			});
@@ -131,7 +131,7 @@ export const GET: RequestHandler = async (event) => {
 				const dayDetails = data.hoursByDay[dayKey] as DayDetails;
 				dayDetails.total += hours;
 				const existing = dayDetails.tasks.find(
-					(t) => (taskId && t.id === taskId) || (!taskId && t.name === taskName)
+					(existingTask) => (taskId && existingTask.id === taskId) || (!taskId && existingTask.name === taskName)
 				);
 				if (existing) {
 					existing.hours += hours;
@@ -152,7 +152,7 @@ export const GET: RequestHandler = async (event) => {
 		let usersTimesheets: UserTimesheet[] = Array.from(userMap.values());
 		if (assigneeIds && assigneeIds.length > 0) {
 			const assigneeSet = new Set(assigneeIds);
-			usersTimesheets = usersTimesheets.filter((ut) => assigneeSet.has(ut.user.id));
+			usersTimesheets = usersTimesheets.filter((userTimesheet) => assigneeSet.has(userTimesheet.user.id));
 		}
 		return json({ usersTimesheets });
 	} catch (err) {

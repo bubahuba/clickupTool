@@ -60,29 +60,29 @@
 	});
 
 	const teamMembers = $derived.by((): TimesheetUser[] => {
-		const team = teamsQuery.data?.teams?.find((t) => t.id === teamId);
+		const team = teamsQuery.data?.teams?.find((teamItem) => teamItem.id === teamId);
 		const members = team?.members ?? [];
-		return members.map((m) => {
-			const u = m.user;
-			const id = typeof u.id === 'string' ? parseInt(u.id, 10) : u.id;
+		return members.map((member) => {
+			const user = member.user;
+			const id = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id;
 			return {
 				id: isNaN(id) ? 0 : id,
-				username: u.username,
-				initials: u.initials,
-				color: u.color
+				username: user.username,
+				initials: user.initials,
+				color: user.color
 			};
-		}).filter((u) => u.id > 0);
+		}).filter((user) => user.id > 0);
 	});
 
 	const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
 	const timesheetsQuery = createQuery(() => ({
 		...clickUpQueryKeys.timesheets(teamId?.toString() ?? '', String(year), String(month), selectedUserIds),
 		queryFn: async () => {
-			const tz = timezone ? `&timezone=${encodeURIComponent(timezone)}` : '';
+			const timezoneParam = timezone ? `&timezone=${encodeURIComponent(timezone)}` : '';
 			const assigneeParam =
 				selectedUserIds.length > 0 ? `&assignee=${selectedUserIds.join(',')}` : '';
 			const res = await fetch(
-				`/api/timesheets?teamId=${teamId}&year=${year}&month=${month}${tz}${assigneeParam}`
+				`/api/timesheets?teamId=${teamId}&year=${year}&month=${month}${timezoneParam}${assigneeParam}`
 			);
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {

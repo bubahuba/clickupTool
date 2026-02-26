@@ -152,7 +152,7 @@ export async function fetchClickUpTaskTime(
 		if (!res.ok) return { totalMs: 0 };
 		const data = await res.json();
 		const entries = Array.isArray(data) ? data : data.data ?? data.entries ?? [];
-		const totalMs = entries.reduce((sum: number, e: { duration?: number }) => sum + Math.abs(e.duration ?? 0), 0);
+		const totalMs = entries.reduce((sum: number, entry: { duration?: number }) => sum + Math.abs(entry.duration ?? 0), 0);
 		return { totalMs };
 	} catch {
 		return { totalMs: 0 };

@@ -28,7 +28,7 @@
 	}
 
 	const selectedUsers = $derived(
-		users.filter((u) => selectedIds.includes(u.id))
+		users.filter((user) => selectedIds.includes(user.id))
 	);
 </script>
 
@@ -42,16 +42,16 @@
 			<span class="text-muted-foreground">{m.select_users()}</span>
 		{:else}
 			<div class="flex flex-wrap gap-1 max-w-[12rem] overflow-hidden">
-				{#each selectedUsers as u (u.id)}
+				{#each selectedUsers as user (user.id)}
 					<span
 						class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shrink-0"
-						style="background: color-mix(in srgb, {u.color ?? '#6b7280'} 20%, transparent); color: {u.color ?? 'inherit'}"
+						style="background: color-mix(in srgb, {user.color ?? '#6b7280'} 20%, transparent); color: {user.color ?? 'inherit'}"
 					>
 						<span
 							class="size-2 rounded-full shrink-0"
-							style="background-color: {u.color ?? '#6b7280'}"
+							style="background-color: {user.color ?? '#6b7280'}"
 						></span>
-						<span class="truncate">{u.username}</span>
+						<span class="truncate">{user.username}</span>
 					</span>
 				{/each}
 			</div>
@@ -60,17 +60,17 @@
 	</DropdownMenuTrigger>
 	<DropdownMenuContent align="end" class="max-h-[16rem] overflow-y-auto">
 		<DropdownMenuCheckboxGroup value={selectedValue} onValueChange={handleValueChange}>
-			{#each users as u (u.id)}
-				<DropdownMenuCheckboxItem value={String(u.id)}>
+			{#each users as user (user.id)}
+				<DropdownMenuCheckboxItem value={String(user.id)}>
 					<span
 						class="inline-flex items-center gap-2 rounded-full px-2 py-0.5 text-xs font-medium shrink-0"
-						style="background: color-mix(in srgb, {u.color ?? '#6b7280'} 20%, transparent); color: {u.color ?? 'inherit'}"
+						style="background: color-mix(in srgb, {user.color ?? '#6b7280'} 20%, transparent); color: {user.color ?? 'inherit'}"
 					>
 						<span
 							class="size-2 rounded-full shrink-0"
-							style="background-color: {u.color ?? '#6b7280'}"
+							style="background-color: {user.color ?? '#6b7280'}"
 						></span>
-						{u.username}
+						{user.username}
 					</span>
 				</DropdownMenuCheckboxItem>
 			{/each}

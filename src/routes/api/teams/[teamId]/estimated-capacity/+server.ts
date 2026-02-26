@@ -49,7 +49,7 @@ export const GET: RequestHandler = async (event) => {
 				if (!task.time_estimate || task.time_estimate <= 0) continue;
 				const isAssignedToUser =
 					task.assignees?.length &&
-					task.assignees.some((a) => a.id === currentUserId);
+					task.assignees.some((assignee) => assignee.id === currentUserId);
 				if (!isAssignedToUser) continue;
 				candidateTasks.push({ task });
 			}
@@ -93,6 +93,7 @@ export const GET: RequestHandler = async (event) => {
 		return json({ tasks: estimatedTasks });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'Failed to fetch estimated capacity';
+		console.error('[estimated-capacity]', err);
 		return json({ error: message }, { status: 500 });
 	}
 };

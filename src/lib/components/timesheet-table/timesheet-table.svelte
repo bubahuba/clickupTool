@@ -113,7 +113,7 @@
 
 	// When timesheets API returns empty, or current user is missing, ensure we show current user for prediction
 	const displayTimesheets = $derived.by((): UserTimesheet[] => {
-		const hasCurrentUser = currentUserId != null && usersTimesheets.some((ut) => ut.user.id === currentUserId);
+		const hasCurrentUser = currentUserId != null && usersTimesheets.some((userTimesheet) => userTimesheet.user.id === currentUserId);
 		if (usersTimesheets.length > 0 && hasCurrentUser) return usersTimesheets;
 		if (currentUser && shouldFetchPrediction) {
 			// Merge: use existing users + add current user if missing
@@ -136,13 +136,13 @@
 			isWeekend: boolean;
 			isFuture: boolean;
 		}[] = [];
-		for (let d = 1; d <= last.getDate(); d++) {
-			const date = new Date(year, month, d);
+		for (let dayOfMonth = 1; dayOfMonth <= last.getDate(); dayOfMonth++) {
+			const date = new Date(year, month, dayOfMonth);
 			const dateKey = toLocalDateKey(date);
 			const isFuture = date.getTime() >= todayStartMs;
 			days.push({
 				date,
-				day: d,
+				day: dayOfMonth,
 				dayName: dayFormatter.format(date),
 				key: dateKey,
 				isWeekend: isWeekend(date),
@@ -179,6 +179,23 @@
 
 	const MAX_HOURS = MAX_HOURS_DEFAULT;
 </script>
+
+<style>
+	@keyframes timesheet-cell-slide-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	.timesheet-cell-slide-up {
+		animation: timesheet-cell-slide-up 250ms ease-out forwards;
+		opacity: 0;
+	}
+</style>
 
 <Tooltip.Provider>
 <div class={cn('flex flex-col gap-4', className)}>
@@ -237,39 +254,40 @@
 			<TableHeader>
 				<TableRow>
 					<TableHead class="sticky left-0 z-[3] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">{m.user()}</TableHead>
-					{#each daysInMonth as dayItem (dayItem.key)}
-						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle", dayItem.isWeekend && "bg-muted")}>{dayItem.dayName} {dayItem.day}</TableHead>
+					{#each daysInMonth as dayItem, dayIndex (dayItem.key)}
+						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle", dayItem.isWeekend && "bg-muted")}>
+							<span class="timesheet-cell-slide-up block" style="animation-delay: {dayIndex * 5}ms">{dayItem.dayName} {dayItem.day}</span>
+						</TableHead>
 					{/each}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{#each displayTimesheets as { user, hoursByDay } (user.id)}
+				{#each displayTimesheets as { user, hoursByDay }, userIndex (user.id)}
 					<TableRow>
 						<TableCell class="sticky left-0 z-[2] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] relative font-medium">
-							<span
-								class="flex items-center gap-2"
-								style="--user-color: {user.color ?? '#6b7280'}"
-							>
+							<span class="timesheet-cell-slide-up flex items-center gap-2" style="animation-delay: {(daysInMonth.length + userIndex * (daysInMonth.length + 1)) * 5}ms; --user-color: {user.color ?? '#6b7280'}">
 								<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--user-color)] text-white text-xs font-semibold shrink-0">{getInitials(user.username, user.initials)}</span>
 								<span class="overflow-hidden text-ellipsis">{user.username}</span>
 							</span>
 						</TableCell>
-						{#each daysInMonth as dayItem (dayItem.key)}
+						{#each daysInMonth as dayItem, dayIndex (dayItem.key)}
 							{@const effective = getEffectiveDayDetails(hoursByDay, dayItem.key, dayItem.isFuture, user.id)}
 							{@const dayDetails = effective.details}
 							{@const hours = dayDetails?.total ?? 0}
 							{@const isOverMax = hours > MAX_HOURS}
 							{@const barHeight = Math.min(hours / MAX_HOURS, 1) * 100}
 							{@const isPredicted = effective.isPredicted}
+							{@const cellIndex = daysInMonth.length + userIndex * (daysInMonth.length + 1) + 1 + dayIndex}
 							<TableCell class={cn("w-14 min-w-14 max-w-14 h-10 p-0 align-bottom text-center relative", dayItem.isWeekend && "bg-muted")}>
-								<div
-									class={cn(
-										"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0.5 rounded-[2px] cursor-default transition-[height,background] duration-150 ease-out",
-										isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-[var(--capacity-pred-2)]" : "bg-[hsl(217_91%_60%)]"
-									)}
-									style="--bar-height: {barHeight}%;"
-								></div>
-								<Tooltip.Root>
+								<span class="timesheet-cell-slide-up block relative h-full w-full" style="animation-delay: {cellIndex * 5}ms">
+									<div
+										class={cn(
+											"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0.5 rounded-[2px] cursor-default transition-[height,background] duration-150 ease-out",
+											isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-[var(--capacity-pred-2)]" : "bg-[hsl(217_91%_60%)]"
+										)}
+										style="--bar-height: {barHeight}%;"
+									></div>
+									<Tooltip.Root>
 									<Tooltip.Trigger
 										class="absolute inset-0 w-full h-full cursor-default rounded-[2px]"
 									/>
@@ -286,7 +304,7 @@
 														<span class="text-muted-foreground font-normal"> {m.capacity_predicted()}</span>
 													{/if}
 												</div>
-												{#each dayDetails.tasks as task, i ((task.id ?? task.name) + '-' + i)}
+												{#each dayDetails.tasks as task, taskIndex ((task.id ?? task.name) + '-' + taskIndex)}
 													<div class="flex justify-between gap-4 text-xs">
 														<span class="truncate">
 															{#if task.id}
@@ -326,6 +344,7 @@
 										{/if}
 									</Tooltip.Content>
 								</Tooltip.Root>
+								</span>
 							</TableCell>
 						{/each}
 					</TableRow>

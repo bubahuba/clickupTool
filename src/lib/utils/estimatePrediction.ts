@@ -62,12 +62,12 @@ export function assignSlotsToFutureWorkingDays(
 		today.getDate()
 	);
 	const result: Record<string, DayDetails> = {};
-	const d = new Date(today);
+	const currentDate = new Date(today);
 	let slotIndex = 0;
-	while (d <= futureEnd && slotIndex < taskSlots.length) {
-		const dow = d.getDay();
+	while (currentDate <= futureEnd && slotIndex < taskSlots.length) {
+		const dow = currentDate.getDay();
 		if (dow !== 0 && dow !== 6) {
-			const dateKey = toLocalDateKey(d);
+			const dateKey = toLocalDateKey(currentDate);
 			const tasks: DayDetails['tasks'] = [];
 			let capacityLeft = maxHours;
 			// Pack slots into this day until full or next slot doesn't fit
@@ -89,19 +89,19 @@ export function assignSlotsToFutureWorkingDays(
 			}
 			if (tasks.length > 0) {
 				result[dateKey] = {
-					total: tasks.reduce((s, t) => s + t.hours, 0),
+					total: tasks.reduce((sum, task) => sum + task.hours, 0),
 					tasks
 				};
 			}
 		}
-		d.setDate(d.getDate() + 1);
+		currentDate.setDate(currentDate.getDate() + 1);
 	}
 	return result;
 }
 
 /** Get start of today at 00:00:00 in local time (ms). */
 export function getStartOfTodayMs(): number {
-	const d = new Date();
-	d.setHours(0, 0, 0, 0);
-	return d.getTime();
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+	return today.getTime();
 }

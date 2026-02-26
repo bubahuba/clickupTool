@@ -86,11 +86,11 @@
 	const timesheetsQuery = createQuery(() => ({
 		queryKey: ["timesheets", "capacity", teamId, MONTHS_BACK],
 		queryFn: async () => {
-			const tz = timezone
+			const timezoneParam = timezone
 				? `&timezone=${encodeURIComponent(timezone)}`
 				: "";
 			const res = await fetch(
-				`/api/timesheets?teamId=${teamId}&monthsBack=${MONTHS_BACK}${tz}`,
+				`/api/timesheets?teamId=${teamId}&monthsBack=${MONTHS_BACK}${timezoneParam}`,
 			);
 			if (!res.ok) throw new Error(await res.text());
 			const data = await res.json();
@@ -132,9 +132,9 @@
 					const taskId = task.id;
 					const taskName = task.name;
 					const existing = merged[dayKey].tasks.find(
-						(t) =>
-							(taskId && t.id === taskId) ||
-							(!taskId && t.name === taskName),
+						(existingTask) =>
+							(taskId && existingTask.id === taskId) ||
+							(!taskId && existingTask.name === taskName),
 					);
 					if (existing) {
 						existing.hours += task.hours;
@@ -218,12 +218,12 @@
 		const dayFormatter = new Intl.DateTimeFormat(locale, {
 			weekday: "short",
 		});
-		const dayLabels = Array.from({ length: 7 }, (_, i) =>
+		const dayLabels = Array.from({ length: 7 }, (_, dayIndex) =>
 			dayFormatter.format(
 				new Date(
 					startMonday.getFullYear(),
 					startMonday.getMonth(),
-					startMonday.getDate() + i,
+					startMonday.getDate() + dayIndex,
 				),
 			),
 		);
@@ -286,15 +286,15 @@
 				startMonday.getMonth(),
 				startMonday.getDate() + col * 7,
 			);
-			const m = date.getMonth();
-			if (m !== lastMonth) {
+			const currentMonth = date.getMonth();
+			if (currentMonth !== lastMonth) {
 				monthLabels.push({
 					label: new Intl.DateTimeFormat(locale, {
 						month: "short",
 					}).format(date),
 					col,
 				});
-				lastMonth = m;
+				lastMonth = currentMonth;
 			}
 		}
 		return { rows, monthLabels, numWeeks };
@@ -307,7 +307,32 @@
 		const level = Math.min(4, Math.ceil((hours / MAX_HOURS) * 4));
 		return `var(--${prefix}-${level})`;
 	}
+
+	const isDataPending = $derived(
+		predictionMode ? estimatedCapacityQuery.isPending : timesheetsQuery.isPending,
+	);
 </script>
+
+<style>
+	@keyframes capacity-cell-slide-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	.capacity-cell-slide-up {
+		animation: capacity-cell-slide-up 250ms ease-out forwards;
+		opacity: 0;
+	}
+	.capacity-month-slide-up {
+		animation: capacity-cell-slide-up 250ms ease-out forwards;
+		opacity: 0;
+	}
+</style>
 
 <div class={cn("flex flex-col gap-4 min-w-0 max-w-full", className)}>
 	<div class="flex items-center justify-between gap-2">
@@ -389,7 +414,7 @@
 						class="grid gap-[2px] pr-[var(--cell-gap,2px)]"
 						style="--cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-rows: repeat(7, var(--cell-size, 1rem)); height: calc(7 * var(--cell-size, 1rem) + 6 * var(--cell-gap, 2px));"
 					>
-						{#each gridData.rows as row, ri (ri)}
+						{#each gridData.rows as row, rowIndex (rowIndex)}
 							<span
 								class="text-[0.65rem] text-muted-foreground leading-[var(--cell-size,1rem)] flex items-center justify-end"
 								>{row.dayLabel}</span
@@ -400,53 +425,76 @@
 				<div
 					class="overflow-x-auto overflow-y-hidden border border-border rounded-md p-2 flex flex-col gap-1 min-w-0 flex-1"
 				>
-					<div
-						class="grid w-full relative"
-						style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
-					>
-						{#each gridData.monthLabels as ml (ml.label + ml.col)}
-							<span
-								class="text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
-								style="grid-column: {ml.col + 1}"
-							>
-								{#if predictionMode ? estimatedCapacityQuery.isPending : timesheetsQuery.isPending}
-									<Skeleton class="h-full w-full rounded" />
-								{:else}
-									{ml.label}
-								{/if}
-							</span>
-						{/each}
-					</div>
-					<div
-						class="grid w-full min-w-max"
-						style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
-					>
-						{#each gridData.rows as row, ri (ri)}
-							{#each row.cells as cell, ci (cell.dateKey || `${ri}-${ci}`)}
-								{@const hours = cell.effectiveHours}
-								{@const hasData = !!cell.dateKey}
-								<div
-									class="relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)]"
-									style="grid-row: {ri +
-										1}; grid-column: {ci + 1}"
+					{#if isDataPending}
+						<div
+							class="grid w-full relative"
+							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
+						>
+							{#each gridData.monthLabels as monthLabel (monthLabel.label + monthLabel.col)}
+								<span
+									class="text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
+									style="grid-column: {monthLabel.col + 1}"
 								>
-									{#if hasData}
-										{#if predictionMode ? estimatedCapacityQuery.isPending : timesheetsQuery.isPending}
-											<Skeleton
-												class="block w-full h-full absolute inset-0 rounded-[2px]"
-											/>
+									<Skeleton class="h-full w-full rounded" />
+								</span>
+							{/each}
+						</div>
+						<div
+							class="grid w-full min-w-max"
+							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
+						>
+							{#each gridData.rows as row, rowIndex (rowIndex)}
+								{#each row.cells as cell, colIndex (cell.dateKey || `${row.dayLabel}-${colIndex}`)}
+									{@const hasData = !!cell.dateKey}
+									<div
+										class="relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)]"
+										style="grid-row: {rowIndex + 1}; grid-column: {colIndex + 1}"
+									>
+										{#if hasData}
+											<Skeleton class="block w-full h-full absolute inset-0 rounded-[2px]" />
 										{:else}
+											<div
+												class="block w-full h-full rounded-[2px] bg-[var(--capacity-cell-empty)]"
+												aria-hidden="true"
+											></div>
+										{/if}
+									</div>
+								{/each}
+							{/each}
+						</div>
+					{:else}
+						<div
+							class="grid w-full relative"
+							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
+						>
+							{#each gridData.monthLabels as monthLabel, monthIndex (monthLabel.label + monthLabel.col)}
+								<span
+									class="capacity-month-slide-up text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
+									style="grid-column: {monthLabel.col + 1}; animation-delay: {monthIndex * 1}ms"
+								>
+									{monthLabel.label}
+								</span>
+							{/each}
+						</div>
+						<div
+							class="grid w-full min-w-max"
+							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
+						>
+							{#each gridData.rows as row, rowIndex (rowIndex)}
+								{#each row.cells as cell, colIndex (cell.dateKey || `${row.dayLabel}-${colIndex}`)}
+									{@const hours = cell.effectiveHours}
+									{@const hasData = !!cell.dateKey}
+									{@const cellIndex = gridData.monthLabels.length + rowIndex * gridData.numWeeks + colIndex}
+									<div
+										class="capacity-cell-slide-up relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)]"
+										style="grid-row: {rowIndex + 1}; grid-column: {colIndex + 1}; animation-delay: {cellIndex * 1}ms"
+									>
+										{#if hasData}
 											<Tooltip.Root>
 												<Tooltip.Trigger
 													class="block w-full h-full absolute inset-0 cursor-default rounded-[2px] hover:outline hover:outline-1 hover:outline-border hover:outline-offset-1 transition-[outline] duration-100"
-													style="background-color: {getCellColor(
-														hours,
-														predictionMode,
-													)}"
-													aria-label={formatDayCellLabel(
-														cell.date,
-														locale,
-													)}
+													style="background-color: {getCellColor(hours, predictionMode)}"
+													aria-label={formatDayCellLabel(cell.date, locale)}
 												/>
 												<Tooltip.Content
 													class="!bg-white !text-foreground border border-border shadow-lg"
@@ -472,7 +520,7 @@
 																	>
 																{/if}
 															</div>
-															{#each cell.details.tasks as task, i ((task.id ?? task.name) + "-" + i)}
+															{#each cell.details.tasks as task, taskIndex ((task.id ?? task.name) + "-" + taskIndex)}
 																<div
 																	class="flex justify-between gap-4 text-xs"
 																>
@@ -506,10 +554,7 @@
 																			{task.name}
 																		{/if}
 																	</span>
-<span
-																		class="tabular-nums shrink-0"
-																	>{formatHoursWithUnit(task.hours)}</span
-																	>
+<span class="tabular-nums shrink-0">{formatHoursWithUnit(task.hours)}</span>
 																</div>
 															{/each}
 															<div
@@ -540,7 +585,6 @@
 													{/if}
 												</Tooltip.Content>
 											</Tooltip.Root>
-										{/if}
 									{:else}
 										<div
 											class="block w-full h-full rounded-[2px] bg-[var(--capacity-cell-empty)]"
@@ -550,7 +594,8 @@
 								</div>
 							{/each}
 						{/each}
-					</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		</Tooltip.Provider>

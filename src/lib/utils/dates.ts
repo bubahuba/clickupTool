@@ -6,16 +6,16 @@ export function isWeekend(date: Date): boolean {
 
 /** Set time to 00:00:00.000. Returns new Date. */
 export function getStartOfDay(date: Date): Date {
-	const d = new Date(date);
-	d.setHours(0, 0, 0, 0);
-	return d;
+	const result = new Date(date);
+	result.setHours(0, 0, 0, 0);
+	return result;
 }
 
 /** Set time to 23:59:59.999. Returns new Date. */
 export function getEndOfDay(date: Date): Date {
-	const d = new Date(date);
-	d.setHours(23, 59, 59, 999);
-	return d;
+	const result = new Date(date);
+	result.setHours(23, 59, 59, 999);
+	return result;
 }
 
 /** Validate date value. */
@@ -70,10 +70,10 @@ export function toDateKeyInTimezone(date: Date, timezone?: string): string {
 		});
 		return formatter.format(date);
 	}
-	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
-	return `${y}-${m}-${d}`;
+	const year = date.getFullYear();
+	const monthPadded = String(date.getMonth() + 1).padStart(2, '0');
+	const dayPadded = String(date.getDate()).padStart(2, '0');
+	return `${year}-${monthPadded}-${dayPadded}`;
 }
 
 /** Format date for day-cell tooltips: localized e.g. "út 31. bře" (weekday day month) */
@@ -84,20 +84,17 @@ export function formatDayCellLabel(date: Date, locale: string): string {
 	return `${weekday} ${day} ${month}`;
 }
 
-/** Format date with time for comments: localized e.g. "út 31. bře. 14:30" */
-export function formatCommentDateTime(
-	ts: number | string | Date | undefined | null,
-	locale: string
-): string {
-	if (ts == null || ts === '') return '';
+/** Parse API timestamp to Date, handling ClickUp formats (seconds/ms, string/number). Returns null if invalid. */
+function parseCommentTimestamp(
+	ts: number | string | Date | undefined | null
+): Date | null {
+	if (ts == null || ts === '') return null;
 	let date: Date;
 	if (ts instanceof Date) {
 		date = ts;
 	} else if (typeof ts === 'number') {
-		// ClickUp and other APIs may use seconds (< 1e12) or ms
 		date = new Date(ts < 1e12 ? ts * 1000 : ts);
 	} else if (typeof ts === 'string') {
-		// ClickUp returns date as string e.g. "1772134561016"
 		const parsed = Number(ts);
 		date = Number.isNaN(parsed)
 			? new Date(ts)
@@ -105,7 +102,24 @@ export function formatCommentDateTime(
 	} else {
 		date = new Date(ts);
 	}
-	if (Number.isNaN(date.getTime())) return '';
+	return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Return ISO string for datetime attribute, or '' if invalid. Handles ClickUp timestamp formats. */
+export function toISOStringSafe(
+	ts: number | string | Date | undefined | null
+): string {
+	const date = parseCommentTimestamp(ts);
+	return date ? date.toISOString() : '';
+}
+
+/** Format date with time for comments: localized e.g. "út 31. bře. 14:30" */
+export function formatCommentDateTime(
+	ts: number | string | Date | undefined | null,
+	locale: string
+): string {
+	const date = parseCommentTimestamp(ts);
+	if (!date) return '';
 	const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date);
 	const day = new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(date);
 	const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(date);

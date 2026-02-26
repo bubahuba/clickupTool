@@ -19,7 +19,7 @@ export function getClosedStatus(
 	statuses: Array<{ type?: string; status: string; orderindex?: number }> | null | undefined
 ): { status: string } | null {
 	const list = statuses ?? [];
-	const byType = list.find((s) => s.type === 'closed' || s.type === 'done');
+	const byType = list.find((status) => status.type === 'closed' || status.type === 'done');
 	if (byType) return byType;
-	return list.find((s) => CLOSED_STATUS_NAMES.includes(s.status?.toLowerCase?.() ?? '')) ?? null;
+	return list.find((status) => CLOSED_STATUS_NAMES.includes(status.status?.toLowerCase?.() ?? '')) ?? null;
 }

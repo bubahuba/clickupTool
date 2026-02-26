@@ -22,7 +22,7 @@
 	import { page } from '$app/state';
 	import {
 		formatCommentDateTime,
-		isValidDate
+		toISOStringSafe
 	} from '$lib/utils/dates.js';
 	import {
 		formatHoursFromMs,
@@ -159,9 +159,9 @@
 	<title>{m.edit_task()} – {task?.name ?? ''}</title>
 </svelte:head>
 
-<div class="p-8 max-w-[42rem]">
+<div class="p-8">
 	<div class="flex flex-col gap-2">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center gap-2 justify-between">
 			<Button variant="ghost" size="sm" href={backHref}>
 				<ArrowLeft class="size-4" />
 				{m.back_to_spaces()}
@@ -191,6 +191,8 @@
 	</div>
 
 	{#if task}
+		<div class="flex flex-wrap gap-8 lg:gap-10 mt-6">
+			<main class="min-w-0 flex-1 min-w-[20rem]">
 		{#if (statuses?.length ?? 0) > 0}
 			<div class="flex items-center gap-2 mt-4">
 				<span class="text-sm font-medium text-muted-foreground">{m.task_status()}:</span>
@@ -212,7 +214,7 @@
 						</span>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start">
-						{#each statuses ?? [] as s (s.status)}
+						{#each statuses ?? [] as status (status.status)}
 							<DropdownMenuItem
 								onclick={async () => {
 									const taskId = task?.id;
@@ -221,7 +223,7 @@
 										const res = await fetch(`/api/tasks/${taskId}`, {
 											method: 'PUT',
 											headers: { 'Content-Type': 'application/json' },
-											body: JSON.stringify({ status: s.status })
+											body: JSON.stringify({ status: status.status })
 										});
 										const data_res = await res.json().catch(() => ({}));
 										if (!res.ok) {
@@ -239,13 +241,13 @@
 									type="button"
 									class="flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
 								>
-									{#if s.color}
+									{#if status.color}
 										<span
 											class="size-2.5 shrink-0 rounded-full"
-											style="background-color: {s.color}"
+											style="background-color: {status.color}"
 										></span>
 									{/if}
-									{s.status}
+									{status.status}
 								</button>
 							</DropdownMenuItem>
 						{/each}
@@ -309,24 +311,24 @@
 				<p class="text-sm mt-0.5">
 					<Tooltip.Provider>
 					{#if task.assignees && task.assignees.length > 0}
-						{#each task.assignees as a (a.id)}
+						{#each task.assignees as assignee (assignee.id)}
 							<span
 								class="assignee-badge inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-1 last:mr-0"
-								style="background: color-mix(in srgb, {a.color ?? '#6b7280'} 20%, transparent); color: {a.color ?? 'inherit'}"
+								style="background: color-mix(in srgb, {assignee.color ?? '#6b7280'} 20%, transparent); color: {assignee.color ?? 'inherit'}"
 							>
 								<span class="sm:hidden">
 									<Tooltip.Root>
 										<Tooltip.Trigger
 											class="cursor-default rounded-full px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
-											{getInitials(a.username, a.initials)}
+											{getInitials(assignee.username, assignee.initials)}
 										</Tooltip.Trigger>
 										<Tooltip.Content side="top">
-											{a.username}
+											{assignee.username}
 										</Tooltip.Content>
 									</Tooltip.Root>
 								</span>
-								<span class="hidden sm:inline">{a.username}</span>
+								<span class="hidden sm:inline">{assignee.username}</span>
 							</span>
 						{/each}
 					{:else}
@@ -411,7 +413,9 @@
 			/>
 		</div>
 
-		<section class="task-comments mt-10">
+		</main>
+
+		<aside class="task-comments min-w-0 flex-1 min-w-[20rem] max-w-[28rem]">
 			<h2 class="text-lg font-semibold mb-4">{m.comments()}</h2>
 
 			{#if comments && comments.length > 0}
@@ -432,7 +436,7 @@
 									</span>
 									<time
 										class="text-muted-foreground text-xs"
-										datetime={isValidDate(commentDate) ? new Date(commentDate).toISOString() : ''}
+										datetime={toISOStringSafe(commentDate)}
 									>
 										{formatCommentDateTime(commentDate, locale) || '—'}
 									</time>
@@ -502,7 +506,8 @@
 					{m.add_comment()}
 				</Button>
 			</form>
-		</section>
+		</aside>
+		</div>
 	{:else}
 		<p class="text-muted-foreground mt-4">{m.error_prefix({ message: 'Task not found' })}</p>
 	{/if}

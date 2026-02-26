@@ -5,8 +5,8 @@ export function getInitials(username: string, providedInitials?: string): string
 	if (parts.length >= 2) {
 		return (parts[0][0] + parts[1][0]).toUpperCase();
 	}
-	const s = username.trim();
-	return s.slice(0, 2).toUpperCase() || (s[0]?.toUpperCase() ?? '?');
+	const trimmed = username.trim();
+	return trimmed.slice(0, 2).toUpperCase() || (trimmed[0]?.toUpperCase() ?? '?');
 }
 
 /** Get display ID for a task (custom_id ?? id). */
