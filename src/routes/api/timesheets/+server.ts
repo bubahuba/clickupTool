@@ -83,6 +83,7 @@ export const GET: RequestHandler = async ({ url }) => {
 				const durationMs = Math.abs(entry.duration ?? 0);
 				const hours = durationMs / (1000 * 60 * 60);
 				const taskId = entry.task?.id;
+				const taskCustomId = entry.task?.custom_id;
 				const taskName = entry.task?.name ?? 'Untitled task';
 
 				if (!userMap.has(userId)) {
@@ -107,8 +108,14 @@ export const GET: RequestHandler = async ({ url }) => {
 				);
 				if (existing) {
 					existing.hours += hours;
+					if (taskCustomId) existing.custom_id = taskCustomId;
 				} else {
-					dayDetails.tasks.push({ id: taskId, name: taskName, hours } satisfies DayTask);
+					dayDetails.tasks.push({
+						id: taskId,
+						custom_id: taskCustomId,
+						name: taskName,
+						hours
+					} satisfies DayTask);
 				}
 			} catch {
 				// Skip malformed entries

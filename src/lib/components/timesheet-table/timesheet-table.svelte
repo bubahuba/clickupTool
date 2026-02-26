@@ -8,6 +8,7 @@
 		TableRow
 	} from "$lib/components/ui/table/index.js";
 	import { page } from "$app/state";
+	import { resolve } from "$app/paths";
 	import * as m from "$lib/paraglide/messages.js";
 	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 	import { cn } from "$lib/utils.js";
@@ -29,8 +30,8 @@
 		year = new Date().getFullYear(),
 		month = new Date().getMonth(),
 		onMonthChange,
-		isLoading = false,
-		error = null
+		isLoading: _isLoading = false,
+		error: _error = null
 	}: Props = $props();
 
 	const locale = $derived(page.params.locale ?? "en");
@@ -97,19 +98,6 @@
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{#if isLoading}
-					<TableRow>
-						<TableCell colspan={daysInMonth.length + 1} class="text-center py-8 text-muted-foreground">
-							{m.loading_timesheets()}
-						</TableCell>
-					</TableRow>
-				{:else if error}
-					<TableRow>
-						<TableCell colspan={daysInMonth.length + 1} class="text-center py-8 text-destructive">
-							{m.error_timesheet({ message: error.message })}
-						</TableCell>
-					</TableRow>
-				{:else}
 				{#each usersTimesheets as { user, hoursByDay } (user.id)}
 					<TableRow>
 						<TableCell class="sticky-user-col relative font-medium sticky left-0 bg-background z-3">
@@ -152,9 +140,22 @@
 													<div class="flex justify-between gap-4 text-xs">
 														<span class="truncate">
 															{#if task.id}
-																<span class="font-bold">{task.id}</span> {task.name}
+																<a
+																	href={resolve(`/${locale}/tasks-by-spaces/${task.id}`)}
+																	class="hover:underline focus:outline-none focus:underline text-primary"
+																>
+																	{#if task.custom_id ?? task.id}
+																		<span class="font-bold">{task.custom_id ?? task.id}</span> {task.name}
+																	{:else}
+																		{task.name}
+																	{/if}
+																</a>
 															{:else}
-																{task.name}
+																{#if task.custom_id ?? task.id}
+																	<span class="font-bold">{task.custom_id ?? task.id}</span> {task.name}
+																{:else}
+																	{task.name}
+																{/if}
 															{/if}
 														</span>
 														<span class="tabular-nums shrink-0">{task.hours.toFixed(1)} h</span>
@@ -174,7 +175,6 @@
 						{/each}
 					</TableRow>
 				{/each}
-				{/if}
 			</TableBody>
 			</table>
 		</div>
@@ -204,7 +204,7 @@
 
 	.table-scroll-container {
 		overflow-x: auto;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid var(--border);
 		border-radius: 0.5rem;
 	}
 
@@ -220,7 +220,7 @@
 		position: sticky;
 		left: 0;
 		z-index: 2;
-		background: hsl(var(--background));
+		background: var(--background);
 		min-width: 10rem;
 		white-space: nowrap;
 		box-shadow: 2px 0 4px -2px rgb(0 0 0 / 0.1);

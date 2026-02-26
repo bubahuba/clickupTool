@@ -9,6 +9,7 @@ export interface TimesheetUser {
 /** Task with hours tracked on a day */
 export interface DayTask {
 	id?: string;
+	custom_id?: string;
 	name: string;
 	hours: number;
 }

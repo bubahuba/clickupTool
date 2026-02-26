@@ -10,6 +10,7 @@
 		side = "left",
 		variant = "sidebar",
 		collapsible = "offcanvas",
+		mobileBehavior = "overlay",
 		class: className,
 		children,
 		...restProps
@@ -17,6 +18,7 @@
 		side?: "left" | "right";
 		variant?: "sidebar" | "floating" | "inset";
 		collapsible?: "offcanvas" | "icon" | "none";
+		mobileBehavior?: "overlay" | "push";
 	} = $props();
 
 	const sidebar = useSidebar();
@@ -32,6 +34,22 @@
 		{...restProps}
 	>
 		{@render children?.()}
+	</div>
+{:else if sidebar.isMobile && mobileBehavior === "push"}
+	<div
+		bind:this={ref}
+		data-sidebar="sidebar"
+		data-slot="sidebar"
+		data-mobile="true"
+		class={cn(
+			"bg-sidebar text-sidebar-foreground flex min-w-0 shrink-0 flex-col overflow-hidden transition-[width] duration-200 ease-linear md:hidden",
+			sidebar.openMobile ? "w-(--sidebar-width)" : "w-0"
+		)}
+		style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
+	>
+		<div class="flex min-h-svh w-(--sidebar-width) shrink-0 flex-col">
+			{@render children?.()}
+		</div>
 	</div>
 {:else if sidebar.isMobile}
 	<Sheet.Root

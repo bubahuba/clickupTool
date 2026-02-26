@@ -43,7 +43,8 @@
 			const data = await res.json();
 			return data.usersTimesheets ?? [];
 		},
-		enabled: !!teamId
+		enabled: !!teamId,
+		placeholderData: (previousData) => previousData
 	}));
 
 	const welcomeMessage = $derived.by(() => {
@@ -109,10 +110,10 @@
 	}
 
 	.error {
-		color: hsl(var(--destructive));
+		color: var(--destructive);
 	}
 
 	.muted {
-		color: hsl(var(--muted-foreground));
+		color: var(--muted-foreground);
 	}
 </style>

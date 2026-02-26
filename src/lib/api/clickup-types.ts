@@ -23,7 +23,7 @@ export interface ClickUpAuthorizedTeamsResponse {
 
 export interface ClickUpTimeEntry {
 	id: string;
-	task?: { id: string; name?: string };
+	task?: { id: string; custom_id?: string; name?: string };
 	user?: {
 		id: number;
 		username: string;
@@ -41,3 +41,76 @@ export interface ClickUpTimeEntry {
 export type ClickUpTimeEntriesResponse =
 	| { data: ClickUpTimeEntry[] }
 	| ClickUpTimeEntry[];
+
+export interface ClickUpSpace {
+	id: string;
+	name: string;
+	private?: boolean;
+	statuses?: unknown[];
+	archived?: boolean;
+}
+
+export interface ClickUpStatus {
+	id?: string | number;
+	status: string;
+	color?: string;
+	type?: string;
+	orderindex?: number;
+}
+
+export interface ClickUpTask {
+	id: string;
+	custom_id?: string;
+	name: string;
+	description?: string;
+	status?: ClickUpStatus;
+	assignees?: Array<{ id: number; username: string; color?: string; initials?: string }>;
+	url?: string;
+	list?: { id: string; name: string };
+	space?: { id: string; name: string };
+	/** Time estimate in milliseconds */
+	time_estimate?: number;
+}
+
+/** Legacy task time endpoint - returns tracked time entries for a task */
+export interface ClickUpTaskTimeEntry {
+	id: string;
+	task_id: string;
+	user_id: number;
+	start: number;
+	end: number;
+	duration: number; // ms
+}
+
+export interface ClickUpTaskUpdatePayload {
+	name?: string;
+	description?: string;
+	status?: string;
+	assignees?: number[];
+}
+
+export interface ClickUpCommentUser {
+	id: number;
+	username: string;
+	email?: string;
+	color?: string;
+	profilePicture?: string;
+	initials?: string;
+}
+
+export interface ClickUpTaskComment {
+	id: string;
+	comment_text: string;
+	user: ClickUpCommentUser;
+	date: number; // Unix timestamp in ms
+	/**
+	 * Rich text format - array of { text, attributes } objects.
+	 * Use comment_text for plain text display.
+	 */
+	comment?: unknown[];
+}
+
+/** Response from GET /task/{id}/comment - may be array or { comments: [] } */
+export type ClickUpTaskCommentsResponse =
+	| { comments: ClickUpTaskComment[] }
+	| ClickUpTaskComment[];
