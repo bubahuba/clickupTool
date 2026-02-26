@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchClickUpTeams } from '$lib/api/clickup-fetch.js';
-import { env } from '$env/dynamic/private';
+import { getToken } from '$lib/auth/server.js';
 
-export const GET: RequestHandler = async () => {
-	const token = env.API_TOKEN;
+export const GET: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
 
 	try {

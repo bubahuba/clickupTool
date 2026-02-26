@@ -1,11 +1,20 @@
 <script lang="ts">
+	import { invalidateAll } from "$app/navigation";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 	import * as m from "$lib/paraglide/messages.js";
 	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
+	import { clearToken } from "$lib/auth/token.js";
 	import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
 	import ListTodo from "@lucide/svelte/icons/list-todo";
+	import LogOut from "@lucide/svelte/icons/log-out";
 	import { cn } from "$lib/utils.js";
+
+	async function handleLogout() {
+		await fetch("/api/auth/logout", { method: "POST" });
+		clearToken();
+		await invalidateAll();
+	}
 
 	const locale = $derived(page.params.locale ?? "cs");
 	const base = $derived(`/${locale}`);
@@ -50,7 +59,7 @@
 						{@const Icon = item.icon}
 						<Sidebar.MenuItem>
 							<a
-								href={resolve(item.href)}
+								href={resolve(item.href as import('$app/types').Pathname)}
 								class={cn(
 									linkClass,
 									isActive(item.href)
@@ -63,6 +72,22 @@
 							</a>
 						</Sidebar.MenuItem>
 					{/each}
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
+		<Sidebar.Group>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					<Sidebar.MenuItem>
+						<button
+							type="button"
+							class={cn(linkClass, linkInactiveClass)}
+							onclick={handleLogout}
+						>
+							<LogOut />
+							<span>{m.nav_logout()}</span>
+						</button>
+					</Sidebar.MenuItem>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>

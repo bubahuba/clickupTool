@@ -62,6 +62,11 @@ declare module '$lib/paraglide/messages.js' {
 	export function no_assignees(): string;
 	export function capacity_prediction_toggle(): string;
 	export function capacity_predicted(): string;
+	export function login_title(): string;
+	export function login_placeholder(): string;
+	export function login_submit(): string;
+	export function login_error_invalid(): string;
+	export function nav_logout(): string;
 }
 
 export {};

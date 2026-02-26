@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchClickUpTeams, fetchClickUpTimeEntries } from '$lib/api/clickup-fetch.js';
-import { env } from '$env/dynamic/private';
+import { getToken } from '$lib/auth/server.js';
 import { toLocalDateKey } from '$lib/utils.js';
 import type {
 	UserTimesheet,
@@ -25,11 +25,12 @@ function toDateKeyInTimezone(date: Date, timezone?: string): string {
 	return toLocalDateKey(date);
 }
 
-export const GET: RequestHandler = async ({ url }) => {
-	const token = env.API_TOKEN;
+export const GET: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
+	const url = event.url;
 
 	const teamId = url.searchParams.get('teamId');
 	const timezone = url.searchParams.get('timezone') ?? undefined;

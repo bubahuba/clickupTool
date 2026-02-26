@@ -21,6 +21,7 @@
 	"edit_task": "Edit task",
 	"task_status": "Status",
 	"status_updated": "Status updated.",
+	"mark_task_closed": "Mark as closed",
 	"task_name": "Task name",
 	"task_name_required": "Task name is required",
 	"task_description": "Description",
@@ -48,5 +49,10 @@
 	"capacity_legend_more": "8+ h",
 	"capacity_grid_title_prediction": "Capacity estimate for 3 months",
 	"capacity_prediction_toggle": "Show prediction",
-	"capacity_predicted": "(predicted)"
+	"capacity_predicted": "(predicted)",
+	"login_title": "Log in",
+	"login_placeholder": "ClickUp API key",
+	"login_submit": "Log in",
+	"login_error_invalid": "Invalid API key. Please check your token and try again.",
+	"nav_logout": "Log out"
 }

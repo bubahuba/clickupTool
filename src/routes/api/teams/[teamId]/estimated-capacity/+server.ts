@@ -7,16 +7,16 @@ import {
 	fetchClickUpTask,
 	fetchClickUpTaskTime
 } from '$lib/api/clickup-fetch.js';
-import { env } from '$env/dynamic/private';
+import { isStatusClosed } from '$lib/api/status-utils.js';
+import { getToken } from '$lib/auth/server.js';
 
 /** Returns total estimate hours from active tasks assigned to the current user with estimates. */
-export const GET: RequestHandler = async ({ params }) => {
-	const token = env.API_TOKEN;
+export const GET: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
-
-	const teamId = params.teamId;
+	const teamId = event.params.teamId;
 	const teamIdNum = parseInt(teamId, 10);
 	if (isNaN(teamIdNum)) {
 		return json({ error: 'Invalid teamId' }, { status: 400 });
@@ -70,6 +70,8 @@ export const GET: RequestHandler = async ({ params }) => {
 		for (let i = 0; i < candidateTasks.length; i++) {
 			const { task } = candidateTasks[i];
 			const fullTask = fullTaskResults[i];
+			// Exclude closed/done/complete tasks from estimated hours
+			if (isStatusClosed(fullTask?.status ?? task.status)) continue;
 			// Prefer time_spent from full task (GET /task/{id}), fallback to legacy time endpoint
 			const trackedMs =
 				fullTask?.time_spent ??

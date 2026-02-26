@@ -13,15 +13,15 @@ import {
 	fetchClickUpTaskTime
 } from '$lib/api/clickup-fetch.js';
 import type { ClickUpStatus } from '$lib/api/clickup-types.js';
-import { env } from '$env/dynamic/private';
+import { getToken } from '$lib/auth/server.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const commentFormSchema = z.object({ comment_text: z.string().min(1) });
 /** Lenient schema for initial load – accepts empty so we don't show errors before submit */
 const commentFormSchemaInit = z.object({ comment_text: z.string().default('') });
 
-export const load: PageServerLoad = async ({ params }) => {
-	const token = env.API_TOKEN;
+export const load: PageServerLoad = async (event) => {
+	const token = getToken(event);
 	if (!token) {
 		return {
 			form: await superValidate({ name: '', description: '' }, zod(taskFormSchema)),
@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		};
 	}
 
-	const { id } = params;
+	const { id } = event.params;
 	try {
 		const [task, comments, timeResult] = await Promise.all([
 			fetchClickUpTask(token, id),
@@ -81,11 +81,12 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, params }) => {
-		const token = env.API_TOKEN;
+	default: async (event) => {
+		const token = getToken(event);
 		if (!token) {
-			return fail(500, { message: 'API_TOKEN not configured' });
+			return fail(401, { message: 'Not authenticated' });
 		}
+		const { request, params } = event;
 
 		const form = await superValidate(request, zod(taskFormSchema));
 		if (!form.valid) {
@@ -105,11 +106,12 @@ export const actions: Actions = {
 			return fail(500, { form, message });
 		}
 	},
-	addComment: async ({ request, params }) => {
-		const token = env.API_TOKEN;
+	addComment: async (event) => {
+		const token = getToken(event);
 		if (!token) {
-			return fail(500, { message: 'API_TOKEN not configured' });
+			return fail(401, { message: 'Not authenticated' });
 		}
+		const { request, params } = event;
 
 		const commentForm = await superValidate(request, zod(commentFormSchema));
 		if (!commentForm.valid) {

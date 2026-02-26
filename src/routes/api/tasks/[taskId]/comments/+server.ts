@@ -1,15 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createClickUpTaskComment } from '$lib/api/clickup-fetch.js';
-import { env } from '$env/dynamic/private';
+import { getToken } from '$lib/auth/server.js';
 
-export const POST: RequestHandler = async ({ params, request }) => {
-	const token = env.API_TOKEN;
+export const POST: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
-
-	const { taskId } = params;
+	const { taskId } = event.params;
+	const request = event.request;
 	let body: { comment_text?: string };
 	try {
 		body = await request.json();

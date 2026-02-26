@@ -1,15 +1,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { fetchClickUpTask, updateClickUpTask } from '$lib/api/clickup-fetch.js';
-import { env } from '$env/dynamic/private';
+import { getToken } from '$lib/auth/server.js';
 
-export const GET: RequestHandler = async ({ params }) => {
-	const token = env.API_TOKEN;
+export const GET: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
-
-	const { taskId } = params;
+	const { taskId } = event.params;
 
 	try {
 		const task = await fetchClickUpTask(token, taskId);
@@ -20,12 +19,12 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
-	const token = env.API_TOKEN;
+export const PUT: RequestHandler = async (event) => {
+	const token = getToken(event);
 	if (!token) {
-		return json({ error: 'API_TOKEN not configured' }, { status: 500 });
+		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
-
+	const { params, request } = event;
 	const { taskId } = params;
 
 	let body: { name?: string; description?: string; status?: string; assignees?: number[] };

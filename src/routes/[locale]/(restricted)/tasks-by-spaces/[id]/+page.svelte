@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import { clickUpQueryKeys } from '$lib/api/index.js';
+	import { getClosedStatus } from '$lib/api/status-utils.js';
 	import { TaskForm } from '$lib/forms/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
@@ -17,6 +18,7 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import Check from '@lucide/svelte/icons/check';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
 
@@ -92,6 +94,37 @@
 	}
 
 	const backHref = $derived(`/${page.params.locale ?? 'en'}/tasks-by-spaces`);
+
+	const closedStatus = $derived(getClosedStatus(statuses));
+
+	const isClosed = $derived(
+		!!closedStatus && task?.status?.status === closedStatus.status
+	);
+
+	let markClosedSubmitting = $state(false);
+
+	async function markTaskClosed() {
+		if (!closedStatus || !task?.id || markClosedSubmitting || isClosed) return;
+		markClosedSubmitting = true;
+		try {
+			const res = await fetch(`/api/tasks/${task.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: closedStatus.status })
+			});
+			const dataRes = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				toast.error((dataRes as { error?: string }).error ?? `Error ${res.status}`);
+				return;
+			}
+			toast.success(m.status_updated());
+			await invalidateTaskDetail();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to update status');
+		} finally {
+			markClosedSubmitting = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -190,6 +223,24 @@
 						{/each}
 					</DropdownMenuContent>
 				</DropdownMenu>
+				{#if closedStatus && !isClosed}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<button
+								type="button"
+								class="check-badge rounded-full p-1.5 transition-colors disabled:opacity-50"
+								onclick={markTaskClosed}
+								disabled={markClosedSubmitting}
+								aria-label={m.mark_task_closed()}
+							>
+								<Check class="size-3.5" />
+							</button>
+						</Tooltip.Trigger>
+						<Tooltip.Content side="bottom">
+							{m.mark_task_closed()}
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 			</div>
 		{:else if task.status}
 			<div class="flex items-center gap-2 mt-4">
@@ -203,6 +254,24 @@
 					{/if}
 					<span style="color: {task.status.color ?? 'inherit'}">{task.status.status}</span>
 				</Badge>
+				{#if closedStatus && !isClosed}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<button
+								type="button"
+								class="check-badge rounded-full p-1.5 transition-colors disabled:opacity-50"
+								onclick={markTaskClosed}
+								disabled={markClosedSubmitting}
+								aria-label={m.mark_task_closed()}
+							>
+								<Check class="size-3.5" />
+							</button>
+						</Tooltip.Trigger>
+						<Tooltip.Content side="bottom">
+							{m.mark_task_closed()}
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 			</div>
 		{/if}
 
@@ -383,5 +452,13 @@
 		padding: 0.125rem 0.5rem;
 		font-size: 0.75rem;
 		font-weight: 500;
+	}
+
+	.check-badge {
+		color: var(--muted-foreground);
+	}
+
+	.check-badge:hover:not(:disabled) {
+		color: #22c55e;
 	}
 </style>
