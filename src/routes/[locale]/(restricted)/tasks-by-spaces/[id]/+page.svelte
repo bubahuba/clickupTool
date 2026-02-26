@@ -26,9 +26,12 @@
 	} from '$lib/utils/dates.js';
 	import {
 		formatHoursFromMs,
+		hoursToMs,
 		getInitials,
 		getTaskDisplayId
 	} from '$lib/utils.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import Pencil from '@lucide/svelte/icons/pencil';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -81,6 +84,9 @@
 	);
 
 	let markClosedSubmitting = $state(false);
+	let estimateEditing = $state(false);
+	let estimateInputValue = $state('');
+	let estimateSubmitting = $state(false);
 
 	async function markTaskClosed() {
 		if (!closedStatus || !task?.id || markClosedSubmitting || isClosed) return;
@@ -102,6 +108,49 @@
 			toast.error(err instanceof Error ? err.message : 'Failed to update status');
 		} finally {
 			markClosedSubmitting = false;
+		}
+	}
+
+	function startEditEstimate() {
+		estimateInputValue = task?.time_estimate && task.time_estimate > 0
+			? formatHoursFromMs(task.time_estimate)
+			: '';
+		estimateEditing = true;
+	}
+
+	function cancelEditEstimate() {
+		estimateEditing = false;
+		estimateInputValue = '';
+	}
+
+	async function saveTimeEstimate() {
+		if (!task?.id || estimateSubmitting) return;
+		const trimmed = estimateInputValue.trim();
+		const hours = trimmed === '' ? 0 : parseFloat(trimmed);
+		if (isNaN(hours) || hours < 0) {
+			toast.error('Please enter a valid non-negative number');
+			return;
+		}
+		estimateSubmitting = true;
+		try {
+			const res = await fetch(`/api/tasks/${task.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ time_estimate: hoursToMs(hours) })
+			});
+			const dataRes = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				toast.error((dataRes as { error?: string }).error ?? `Error ${res.status}`);
+				return;
+			}
+			toast.success(m.time_estimate_updated());
+			estimateEditing = false;
+			estimateInputValue = '';
+			await invalidateTaskDetail();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to update time estimate');
+		} finally {
+			estimateSubmitting = false;
 		}
 	}
 </script>
@@ -288,13 +337,52 @@
 			</div>
 			<div>
 				<span class="text-sm font-medium text-muted-foreground">{m.time_estimate()}:</span>
-				<p class="text-sm mt-0.5">
-					{#if task.time_estimate && task.time_estimate > 0}
-						{m.hours_format({ hours: formatHoursFromMs(task.time_estimate) })}
+				<div class="text-sm mt-0.5 flex items-center gap-2">
+					{#if estimateEditing}
+						<div class="flex items-center gap-2">
+							<Input
+								type="number"
+								min="0"
+								step="0.5"
+								placeholder="0"
+								class="w-20 h-8 text-sm"
+								bind:value={estimateInputValue}
+								onkeydown={(e) => e.key === 'Enter' && saveTimeEstimate()}
+							/>
+							<span class="text-muted-foreground">h</span>
+							<Button
+								size="sm"
+								variant="default"
+								onclick={saveTimeEstimate}
+								disabled={estimateSubmitting}
+							>
+								{m.save_task()}
+							</Button>
+							<Button
+								size="sm"
+								variant="ghost"
+								onclick={cancelEditEstimate}
+								disabled={estimateSubmitting}
+							>
+								{m.cancel()}
+							</Button>
+						</div>
 					{:else}
-						<span class="text-muted-foreground">—</span>
+						{#if task.time_estimate && task.time_estimate > 0}
+							{m.hours_format({ hours: formatHoursFromMs(task.time_estimate) })}
+						{:else}
+							<span class="text-muted-foreground">—</span>
+						{/if}
+						<button
+							type="button"
+							class="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+							onclick={startEditEstimate}
+							aria-label="Edit time estimate"
+						>
+							<Pencil class="size-3.5" />
+						</button>
 					{/if}
-				</p>
+				</div>
 			</div>
 			<div>
 				<span class="text-sm font-medium text-muted-foreground">{m.time_spent()}:</span>

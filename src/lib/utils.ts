@@ -25,7 +25,7 @@ export {
 	toDateKeyInTimezone
 } from './utils/dates.js';
 
-export { formatHours, formatHoursFromMs, formatHoursWithUnit } from './utils/numbers.js';
+export { formatHours, formatHoursFromMs, formatHoursWithUnit, hoursToMs } from './utils/numbers.js';
 export { getInitials, getTaskDisplayId } from './utils/strings.js';
 export {
 	getSessionStorageBoolean,

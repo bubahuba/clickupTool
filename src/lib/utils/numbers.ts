@@ -10,6 +10,11 @@ export function formatHoursWithUnit(hours: number, includeUnit = true): string {
 	return includeUnit ? `${str} h` : str;
 }
 
+/** Convert hours to milliseconds. */
+export function hoursToMs(hours: number): number {
+	return Math.round(hours * 60 * 60 * 1000);
+}
+
 /** Convert milliseconds to hours and format. */
 export function formatHoursFromMs(ms: number): string {
 	if (!ms || ms <= 0) return '0';

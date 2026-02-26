@@ -27,7 +27,13 @@ export const PUT: RequestHandler = async (event) => {
 	const { params, request } = event;
 	const { taskId } = params;
 
-	let body: { name?: string; description?: string; status?: string; assignees?: number[] };
+	let body: {
+		name?: string;
+		description?: string;
+		status?: string;
+		assignees?: number[];
+		time_estimate?: number;
+	};
 	try {
 		body = await request.json();
 	} catch {

@@ -89,6 +89,8 @@ export interface ClickUpTaskUpdatePayload {
 	description?: string;
 	status?: string;
 	assignees?: number[];
+	/** Time estimate in milliseconds */
+	time_estimate?: number;
 }
 
 export interface ClickUpCommentUser {
