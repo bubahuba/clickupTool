@@ -11,6 +11,20 @@ import type {
 
 const BASE = 'https://api.clickup.com/api';
 
+export interface ClickUpAuthorizedUser {
+	user: { id: number; username: string; email?: string; color?: string };
+}
+
+export async function fetchClickUpUser(token: string): Promise<ClickUpAuthorizedUser> {
+	const res = await fetch(`${BASE}/v2/user`, {
+		headers: { Authorization: token }
+	});
+	if (!res.ok) {
+		throw new Error(`ClickUp user: ${res.status} ${await res.text()}`);
+	}
+	return res.json();
+}
+
 export async function fetchClickUpTeams(
 	token: string
 ): Promise<ClickUpAuthorizedTeamsResponse> {
@@ -67,6 +81,15 @@ export async function fetchClickUpTasksBySpace(
 		include_closed: 'true',
 		custom_task_ids: 'true'
 	});
+	return fetchClickUpTeamTasks(token, teamId, params);
+}
+
+/** Fetch tasks (single page). Responses limited to 100 tasks per page. */
+export async function fetchClickUpTeamTasks(
+	token: string,
+	teamId: number,
+	params: URLSearchParams
+): Promise<{ tasks: ClickUpTask[] }> {
 	const res = await fetch(`${BASE}/v2/team/${teamId}/task?${params}`, {
 		headers: { Authorization: token }
 	});
@@ -76,6 +99,31 @@ export async function fetchClickUpTasksBySpace(
 	const data = await res.json();
 	const tasks = Array.isArray(data?.tasks) ? data.tasks : data?.tasks ?? [];
 	return { tasks };
+}
+
+/** Fetch all tasks for a space with pagination (handles 100 per page). */
+export async function fetchClickUpTeamTasksAllPages(
+	token: string,
+	teamId: number,
+	spaceId: string,
+	options: { includeClosed?: boolean }
+): Promise<ClickUpTask[]> {
+	const allTasks: ClickUpTask[] = [];
+	let page = 0;
+	const limit = 100; // ClickUp returns max 100 per page
+	let hasMore = true;
+	while (hasMore) {
+		const params = new URLSearchParams();
+		params.set('space_ids[]', spaceId);
+		params.set('include_closed', String(options.includeClosed ?? false));
+		params.set('custom_task_ids', 'true');
+		params.set('page', String(page));
+		const { tasks } = await fetchClickUpTeamTasks(token, teamId, params);
+		allTasks.push(...tasks);
+		hasMore = tasks.length >= limit;
+		page++;
+	}
+	return allTasks;
 }
 
 export async function fetchClickUpTask(token: string, taskId: string): Promise<ClickUpTask> {

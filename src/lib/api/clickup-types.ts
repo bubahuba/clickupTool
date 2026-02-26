@@ -70,6 +70,8 @@ export interface ClickUpTask {
 	space?: { id: string; name: string };
 	/** Time estimate in milliseconds */
 	time_estimate?: number;
+	/** Time spent/tracked in milliseconds (may be in API response) */
+	time_spent?: number;
 }
 
 /** Legacy task time endpoint - returns tracked time entries for a task */

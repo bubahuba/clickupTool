@@ -16,6 +16,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
 
@@ -44,7 +45,9 @@
 	const task = $derived(taskDetail?.task ?? data.task);
 	const comments = $derived(taskDetail?.comments ?? data.comments ?? []);
 	const statuses = $derived(taskDetail?.statuses ?? data.statuses ?? []);
-	const timeTrackedMs = $derived(taskDetail?.timeTrackedMs ?? data.timeTrackedMs ?? 0);
+	const timeTrackedMs = $derived(
+		task?.time_spent ?? taskDetail?.timeTrackedMs ?? data.timeTrackedMs ?? 0
+	);
 
 	async function invalidateTaskDetail() {
 		if (data.task?.id) {
@@ -97,10 +100,29 @@
 
 <div class="task-edit">
 	<div class="task-edit-header">
-		<Button variant="ghost" size="sm" href={backHref}>
-			<ArrowLeft class="size-4" />
-			{m.back_to_spaces()}
-		</Button>
+		<div class="flex items-center gap-2">
+			<Button variant="ghost" size="sm" href={backHref}>
+				<ArrowLeft class="size-4" />
+				{m.back_to_spaces()}
+			</Button>
+			{#if task?.url}
+				<Button variant="ghost" size="sm" href={task.url} target="_blank" rel="noopener noreferrer">
+					<ExternalLink class="size-4" />
+					{m.show_in_clickup()}
+				</Button>
+			{:else if task?.id}
+				<Button
+					variant="ghost"
+					size="sm"
+					href="https://app.clickup.com/t/{task.id}"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					<ExternalLink class="size-4" />
+					{m.show_in_clickup()}
+				</Button>
+			{/if}
+		</div>
 		<h1 class="text-xl font-semibold">{m.edit_task()}</h1>
 		{#if task && (task.custom_id ?? task.id)}
 			<span class="text-sm text-muted-foreground font-mono ml-2">{task.custom_id ?? task.id}</span>

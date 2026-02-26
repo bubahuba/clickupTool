@@ -13,6 +13,7 @@ declare global {
 // Paraglide JS compiles to plain JS without .d.ts - this declaration satisfies TypeScript
 declare module '$lib/paraglide/messages.js' {
 	export function capacity_grid_title(): string;
+	export function capacity_grid_title_prediction(): string;
 	export function capacity_legend_less(): string;
 	export function capacity_legend_more(): string;
 	export function tooltip_total(inputs?: object): string;
@@ -44,6 +45,7 @@ declare module '$lib/paraglide/messages.js' {
 	export function task_saved(): string;
 	export function task_save_failed(): string;
 	export function back_to_spaces(): string;
+	export function show_in_clickup(): string;
 	export function nav_dashboard(): string;
 	export function nav_label(): string;
 	export function comments(): string;
@@ -58,6 +60,8 @@ declare module '$lib/paraglide/messages.js' {
 	export function time_spent(): string;
 	export function hours_format(args: { hours: unknown }): string;
 	export function no_assignees(): string;
+	export function capacity_prediction_toggle(): string;
+	export function capacity_predicted(): string;
 }
 
 export {};

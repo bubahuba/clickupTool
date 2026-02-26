@@ -28,6 +28,7 @@
 	"task_saved": "Task saved successfully.",
 	"task_save_failed": "Failed to save task.",
 	"back_to_spaces": "Back to spaces",
+	"show_in_clickup": "Show in ClickUp",
 	"nav_dashboard": "Dashboard",
 	"nav_label": "Navigation",
 	"comments": "Comments",
@@ -44,5 +45,8 @@
 	"no_assignees": "No assignees",
 	"capacity_grid_title": "Capacity (last 12 months)",
 	"capacity_legend_less": "Less",
-	"capacity_legend_more": "8+ h"
+	"capacity_legend_more": "8+ h",
+	"capacity_grid_title_prediction": "Capacity estimate for 3 months",
+	"capacity_prediction_toggle": "Show prediction",
+	"capacity_predicted": "(predicted)"
 }

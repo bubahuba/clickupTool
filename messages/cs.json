@@ -28,6 +28,7 @@
 	"task_saved": "Úkol byl úspěšně uložen.",
 	"task_save_failed": "Nepodařilo se uložit úkol.",
 	"back_to_spaces": "Zpět k prostorům",
+	"show_in_clickup": "Zobrazit v ClickUp",
 	"nav_dashboard": "Přehled",
 	"nav_label": "Navigace",
 	"comments": "Komentáře",
@@ -44,5 +45,8 @@
 	"no_assignees": "Žádní zodpovědní",
 	"capacity_grid_title": "Kapacita (posledních 12 měsíců)",
 	"capacity_legend_less": "Méně",
-	"capacity_legend_more": "8+ h"
+	"capacity_legend_more": "8+ h",
+	"capacity_grid_title_prediction": "Odhad kapacit na 3 měsíce",
+	"capacity_prediction_toggle": "Zobrazit předpověď",
+	"capacity_predicted": "(předpovězeno)"
 }
