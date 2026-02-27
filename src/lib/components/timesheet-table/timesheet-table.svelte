@@ -188,15 +188,15 @@
 	<div class="flex items-center justify-between gap-4 flex-wrap">
 		<div class="flex items-center gap-4 text-xs text-muted-foreground shrink-0 mr-4">
 			<span class="flex items-center gap-1.5">
-				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[hsl(217_91%_60%)]"></span>
+				<span class="w-2 h-2 rounded-[2px] shrink-0 bg-[hsl(217_91%_60%)]"></span>
 				{m.timesheet_legend_tracked()}
 			</span>
 			<span class="flex items-center gap-1.5">
-				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[hsl(25_95%_53%)]"></span>
+				<span class="w-2 h-2 rounded-[2px] shrink-0 bg-[hsl(25_95%_53%)]"></span>
 				{m.timesheet_legend_over()}
 			</span>
 			<span class="flex items-center gap-1.5">
-				<span class="w-4 h-2 rounded-[2px] shrink-0 bg-[var(--capacity-pred-2)]"></span>
+				<span class="w-2 h-2 rounded-[2px] shrink-0 bg-(--capacity-pred-2)"></span>
 				{m.timesheet_legend_predicted()}
 			</span>
 		</div>
@@ -239,9 +239,9 @@
 			<table class="w-max min-w-full table-fixed border-separate border-spacing-0">
 			<TableHeader>
 				<TableRow>
-					<TableHead class="sticky left-0 z-[3] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] text-[0.65rem] text-muted-foreground">{m.user()}</TableHead>
+					<TableHead class="sticky left-0 z-3 bg-background min-w-16 lg:min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] text-[0.65rem] text-muted-foreground">{m.user()}</TableHead>
 					{#each daysInMonth as dayItem, _dayIndex (dayItem.key)}
-						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle text-[0.65rem] text-muted-foreground", dayItem.isWeekend && "bg-muted")}>
+						<TableHead class={cn("min-w-8 text-center p-1 align-middle text-[0.65rem] text-muted-foreground", dayItem.isWeekend && "bg-muted")}>
 							<span class="block">{dayItem.dayName} {dayItem.day}</span>
 						</TableHead>
 					{/each}
@@ -250,10 +250,10 @@
 			<TableBody>
 				{#each displayTimesheets as { user, hoursByDay }, _userIndex (user.id)}
 					<TableRow>
-						<TableCell class="sticky left-0 z-[2] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] relative font-medium">
+						<TableCell class="sticky left-0 z-2 bg-background min-w-16 lg:min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] font-medium">
 							<span class="flex items-center gap-2" style="--user-color: {user.color ?? '#6b7280'}">
-								<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--user-color)] text-white text-xs font-semibold shrink-0">{getInitials(user.username, user.initials)}</span>
-								<span class="overflow-hidden text-ellipsis">{user.username}</span>
+								<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-(--user-color) text-white text-xs font-semibold shrink-0">{getInitials(user.username, user.initials)}</span>
+								<span class="overflow-hidden text-ellipsis hidden lg:block">{user.username}</span>
 							</span>
 						</TableCell>
 						{#each daysInMonth as dayItem, _dayIndex (dayItem.key)}
@@ -263,12 +263,12 @@
 							{@const isOverMax = hours > MAX_HOURS}
 							{@const barHeight = Math.min(hours / MAX_HOURS, 1) * 100}
 							{@const isPredicted = effective.isPredicted}
-							<TableCell class={cn("w-14 min-w-14 max-w-14 h-10 p-0 align-bottom text-center relative", dayItem.isWeekend && "bg-muted")}>
+							<TableCell class={cn("min-w-8 h-10 p-0 align-bottom text-center relative", dayItem.isWeekend && "bg-muted")}>
 								<span class="block relative h-full w-full">
 									<div
 										class={cn(
-											"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0 rounded-[2px] cursor-default transition-all duration-300",
-											isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-[var(--capacity-pred-2)]" : "bg-[hsl(217_91%_60%)]"
+											"absolute bottom-0.5 left-0.5 right-0.5 h-(--bar-height) min-h-0 rounded-[2px] cursor-default transition-all duration-300",
+											isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-(--capacity-pred-2)" : "bg-[hsl(217_91%_60%)]"
 										)}
 										style="--bar-height: {barHeight}%; transition-delay: {Math.random() * 1000}ms;"
 										in:slide={{...barSlide, delay: Math.random() * 1000}}
