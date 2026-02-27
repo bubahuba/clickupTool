@@ -241,7 +241,7 @@ export async function fetchClickUpTaskComments(
 		throw new Error(`ClickUp task comments: ${res.status} ${await res.text()}`);
 	}
 	const data: ClickUpTaskCommentsResponse = await res.json();
-	return Array.isArray(data) ? data : data.comments ?? [];
+	return Array.isArray(data) ? data : data.comments.reverse() ?? [];
 }
 
 export async function createClickUpTaskComment(

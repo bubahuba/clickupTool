@@ -192,7 +192,7 @@
 
 	{#if task}
 		<div class="flex flex-wrap gap-8 lg:gap-10 mt-6">
-			<main class="min-w-0 flex-1 min-w-[20rem]">
+			<main class="min-w-0 flex-1">
 		{#if (statuses?.length ?? 0) > 0}
 			<div class="flex items-center gap-2 mt-4">
 				<span class="text-sm font-medium text-muted-foreground">{m.task_status()}:</span>
@@ -415,7 +415,7 @@
 
 		</main>
 
-		<aside class="task-comments min-w-0 flex-1 min-w-[20rem] max-w-[28rem]">
+		<aside class="task-comments min-w-0 flex-1 max-w-md">
 			<h2 class="text-lg font-semibold mb-4">{m.comments()}</h2>
 
 			{#if comments && comments.length > 0}
@@ -442,7 +442,7 @@
 									</time>
 								</span>
 							</div>
-							<p class="text-sm whitespace-pre-wrap break-words">
+							<p class="text-sm whitespace-pre-wrap wrap-break-word">
 								{comment.comment_text ?? ''}
 							</p>
 						</li>
