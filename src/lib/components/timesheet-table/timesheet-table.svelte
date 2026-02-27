@@ -32,8 +32,11 @@
 	} from "$lib/utils/estimatePrediction.js";
 	import type { DayDetails, TimesheetUser, UserTimesheet } from "./types.js";
 	import { UsersDropdown } from "$lib/components/users-dropdown/index.js";
+	import { slide } from "svelte/transition";
 	import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 	import ChevronRight from "@lucide/svelte/icons/chevron-right";
+
+	const barSlide = { duration: 300 };
 
 	interface Props {
 		usersTimesheets: UserTimesheet[];
@@ -180,23 +183,6 @@
 	const MAX_HOURS = MAX_HOURS_DEFAULT;
 </script>
 
-<style>
-	@keyframes timesheet-cell-slide-up {
-		from {
-			opacity: 0;
-			transform: translateY(8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	.timesheet-cell-slide-up {
-		animation: timesheet-cell-slide-up 250ms ease-out forwards;
-		opacity: 0;
-	}
-</style>
-
 <Tooltip.Provider>
 <div class={cn('flex flex-col gap-4', className)}>
 	<div class="flex items-center justify-between gap-4 flex-wrap">
@@ -253,59 +239,59 @@
 			<table class="w-max min-w-full table-fixed border-separate border-spacing-0">
 			<TableHeader>
 				<TableRow>
-					<TableHead class="sticky left-0 z-[3] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]">{m.user()}</TableHead>
-					{#each daysInMonth as dayItem, dayIndex (dayItem.key)}
-						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle", dayItem.isWeekend && "bg-muted")}>
-							<span class="timesheet-cell-slide-up block" style="animation-delay: {dayIndex * 5}ms">{dayItem.dayName} {dayItem.day}</span>
+					<TableHead class="sticky left-0 z-[3] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] text-[0.65rem] text-muted-foreground">{m.user()}</TableHead>
+					{#each daysInMonth as dayItem, _dayIndex (dayItem.key)}
+						<TableHead class={cn("w-14 min-w-14 max-w-14 text-center p-1 align-middle text-[0.65rem] text-muted-foreground", dayItem.isWeekend && "bg-muted")}>
+							<span class="block">{dayItem.dayName} {dayItem.day}</span>
 						</TableHead>
 					{/each}
 				</TableRow>
 			</TableHeader>
 			<TableBody>
-				{#each displayTimesheets as { user, hoursByDay }, userIndex (user.id)}
+				{#each displayTimesheets as { user, hoursByDay }, _userIndex (user.id)}
 					<TableRow>
 						<TableCell class="sticky left-0 z-[2] bg-background min-w-40 whitespace-nowrap shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] relative font-medium">
-							<span class="timesheet-cell-slide-up flex items-center gap-2" style="animation-delay: {(daysInMonth.length + userIndex * (daysInMonth.length + 1)) * 5}ms; --user-color: {user.color ?? '#6b7280'}">
+							<span class="flex items-center gap-2" style="--user-color: {user.color ?? '#6b7280'}">
 								<span class="inline-flex items-center justify-center w-7 h-7 rounded-md bg-[var(--user-color)] text-white text-xs font-semibold shrink-0">{getInitials(user.username, user.initials)}</span>
 								<span class="overflow-hidden text-ellipsis">{user.username}</span>
 							</span>
 						</TableCell>
-						{#each daysInMonth as dayItem, dayIndex (dayItem.key)}
+						{#each daysInMonth as dayItem, _dayIndex (dayItem.key)}
 							{@const effective = getEffectiveDayDetails(hoursByDay, dayItem.key, dayItem.isFuture, user.id)}
 							{@const dayDetails = effective.details}
 							{@const hours = dayDetails?.total ?? 0}
 							{@const isOverMax = hours > MAX_HOURS}
 							{@const barHeight = Math.min(hours / MAX_HOURS, 1) * 100}
 							{@const isPredicted = effective.isPredicted}
-							{@const cellIndex = daysInMonth.length + userIndex * (daysInMonth.length + 1) + 1 + dayIndex}
 							<TableCell class={cn("w-14 min-w-14 max-w-14 h-10 p-0 align-bottom text-center relative", dayItem.isWeekend && "bg-muted")}>
-								<span class="timesheet-cell-slide-up block relative h-full w-full" style="animation-delay: {cellIndex * 5}ms">
+								<span class="block relative h-full w-full">
 									<div
 										class={cn(
-											"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0.5 rounded-[2px] cursor-default transition-[height,background] duration-150 ease-out",
+											"absolute bottom-0.5 left-0.5 right-0.5 h-[var(--bar-height)] min-h-0 rounded-[2px] cursor-default transition-all duration-300",
 											isOverMax ? "bg-[hsl(25_95%_53%)]" : isPredicted ? "bg-[var(--capacity-pred-2)]" : "bg-[hsl(217_91%_60%)]"
 										)}
-										style="--bar-height: {barHeight}%;"
+										style="--bar-height: {barHeight}%; transition-delay: {Math.random() * 1000}ms;"
+										in:slide={{...barSlide, delay: Math.random() * 1000}}
 									></div>
 									<Tooltip.Root>
 									<Tooltip.Trigger
 										class="absolute inset-0 w-full h-full cursor-default rounded-[2px]"
 									/>
 									<Tooltip.Content
-										class="!bg-white !text-foreground border border-border shadow-lg"
-										arrowClasses="!bg-white"
+										class="bg-card text-foreground border border-border shadow-lg"
+										arrowClasses="bg-card"
 										side="top"
 									>
 										{#if dayDetails?.tasks?.length}
 											<div class="min-w-48 space-y-1.5 py-0.5">
-												<div class="font-medium text-xs border-b border-border pb-1 mb-1">
+												<div class="font-medium text-[0.65rem] text-muted-foreground border-b border-border pb-1 mb-1">
 													{formatDayCellLabel(dayItem.date, locale)}
 													{#if isPredicted}
 														<span class="text-muted-foreground font-normal"> {m.capacity_predicted()}</span>
 													{/if}
 												</div>
 												{#each dayDetails.tasks as task, taskIndex ((task.id ?? task.name) + '-' + taskIndex)}
-													<div class="flex justify-between gap-4 text-xs">
+													<div class="flex justify-between gap-4">
 														<span class="truncate">
 															{#if task.id}
 																<a

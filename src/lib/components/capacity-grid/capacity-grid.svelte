@@ -6,8 +6,8 @@
 	import { SvelteDate } from "svelte/reactivity";
 	import * as m from "$lib/paraglide/messages.js";
 	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-	import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 	import { Switch } from "$lib/components/ui/switch/index.js";
+	import { fade } from "svelte/transition";
 	import {
 		cn,
 		toLocalDateKey,
@@ -15,7 +15,7 @@
 		formatHoursWithUnit,
 		getSessionStorageBoolean,
 		setSessionStorageBoolean,
-		getTaskDisplayId
+		getTaskDisplayId,
 	} from "$lib/utils.js";
 	import {
 		assignSlotsToFutureWorkingDays,
@@ -71,9 +71,14 @@
 		savePredictionMode(checked);
 		const url = new URL(page.url);
 		url.searchParams.set("prediction", checked ? "1" : "0");
-		goto(resolve((url.pathname + url.search) as import("$app/types").Pathname), {
-			replaceState: true
-		});
+		goto(
+			resolve(
+				(url.pathname + url.search) as import("$app/types").Pathname,
+			),
+			{
+				replaceState: true,
+			},
+		);
 	}
 
 	const locale = $derived(page.params.locale ?? "en");
@@ -308,31 +313,8 @@
 		return `var(--${prefix}-${level})`;
 	}
 
-	const isDataPending = $derived(
-		predictionMode ? estimatedCapacityQuery.isPending : timesheetsQuery.isPending,
-	);
+	const fadeIn = { duration: 300 };
 </script>
-
-<style>
-	@keyframes capacity-cell-slide-up {
-		from {
-			opacity: 0;
-			transform: translateY(8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	.capacity-cell-slide-up {
-		animation: capacity-cell-slide-up 250ms ease-out forwards;
-		opacity: 0;
-	}
-	.capacity-month-slide-up {
-		animation: capacity-cell-slide-up 250ms ease-out forwards;
-		opacity: 0;
-	}
-</style>
 
 <div class={cn("flex flex-col gap-4 min-w-0 max-w-full", className)}>
 	<div class="flex items-center justify-between gap-2">
@@ -425,166 +407,151 @@
 				<div
 					class="overflow-x-auto overflow-y-hidden border border-border rounded-md p-2 flex flex-col gap-1 min-w-0 flex-1"
 				>
-					{#if isDataPending}
-						<div
-							class="grid w-full relative"
-							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
-						>
-							{#each gridData.monthLabels as monthLabel (monthLabel.label + monthLabel.col)}
-								<span
-									class="text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
-									style="grid-column: {monthLabel.col + 1}"
+					<div
+						class="grid w-full relative"
+						style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
+					>
+						{#each gridData.monthLabels as monthLabel, _monthIndex (monthLabel.label + monthLabel.col)}
+							<span
+								class="text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
+								style="grid-column: {monthLabel.col + 1}"
+							>
+								{monthLabel.label}
+							</span>
+						{/each}
+					</div>
+					<div
+						class="grid w-full min-w-max"
+						style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
+					>
+						{#each gridData.rows as row, rowIndex (rowIndex)}
+							{#each row.cells as cell, colIndex (cell.dateKey || `${row.dayLabel}-${colIndex}`)}
+								{@const hours = cell.effectiveHours}
+								{@const hasData = !!cell.dateKey}
+								<div
+									in:fade={{
+										...fadeIn,
+										delay: Math.random() * 1000,
+									}}
+									class="relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)] transition-background-color duration-300"
+									style="grid-row: {rowIndex +
+										1}; grid-column: {colIndex +
+										1}; background-color: {getCellColor(
+										hours,
+										predictionMode,
+									)}; transition-delay: {Math.random() * 1000}ms;"
 								>
-									<Skeleton class="h-full w-full rounded" />
-								</span>
-							{/each}
-						</div>
-						<div
-							class="grid w-full min-w-max"
-							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
-						>
-							{#each gridData.rows as row, rowIndex (rowIndex)}
-								{#each row.cells as cell, colIndex (cell.dateKey || `${row.dayLabel}-${colIndex}`)}
-									{@const hasData = !!cell.dateKey}
-									<div
-										class="relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)]"
-										style="grid-row: {rowIndex + 1}; grid-column: {colIndex + 1}"
-									>
-										{#if hasData}
-											<Skeleton class="block w-full h-full absolute inset-0 rounded-[2px]" />
-										{:else}
-											<div
-												class="block w-full h-full rounded-[2px] bg-[var(--capacity-cell-empty)]"
-												aria-hidden="true"
-											></div>
-										{/if}
-									</div>
-								{/each}
-							{/each}
-						</div>
-					{:else}
-						<div
-							class="grid w-full relative"
-							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); gap: var(--cell-gap, 2px); height: var(--cell-size, 1rem);"
-						>
-							{#each gridData.monthLabels as monthLabel, monthIndex (monthLabel.label + monthLabel.col)}
-								<span
-									class="capacity-month-slide-up text-[0.65rem] text-muted-foreground grid-row-1 leading-[var(--cell-size,1rem)]"
-									style="grid-column: {monthLabel.col + 1}; animation-delay: {monthIndex * 1}ms"
-								>
-									{monthLabel.label}
-								</span>
-							{/each}
-						</div>
-						<div
-							class="grid w-full min-w-max"
-							style="--grid-cols: {gridData.numWeeks}; --cell-size: {CELL_SIZE}; --cell-gap: {CELL_GAP}; grid-template-columns: repeat(var(--grid-cols), minmax(var(--cell-size, 1rem), 1fr)); grid-template-rows: repeat(7, var(--cell-size, 1rem)); gap: var(--cell-gap, 2px);"
-						>
-							{#each gridData.rows as row, rowIndex (rowIndex)}
-								{#each row.cells as cell, colIndex (cell.dateKey || `${row.dayLabel}-${colIndex}`)}
-									{@const hours = cell.effectiveHours}
-									{@const hasData = !!cell.dateKey}
-									{@const cellIndex = gridData.monthLabels.length + rowIndex * gridData.numWeeks + colIndex}
-									<div
-										class="capacity-cell-slide-up relative w-full h-full min-w-[var(--cell-size,1rem)] min-h-[var(--cell-size,1rem)]"
-										style="grid-row: {rowIndex + 1}; grid-column: {colIndex + 1}; animation-delay: {cellIndex * 1}ms"
-									>
-										{#if hasData}
-											<Tooltip.Root>
-												<Tooltip.Trigger
-													class="block w-full h-full absolute inset-0 cursor-default rounded-[2px] hover:outline hover:outline-1 hover:outline-border hover:outline-offset-1 transition-[outline] duration-100"
-													style="background-color: {getCellColor(hours, predictionMode)}"
-													aria-label={formatDayCellLabel(cell.date, locale)}
-												/>
-												<Tooltip.Content
-													class="!bg-white !text-foreground border border-border shadow-lg"
-													arrowClasses="!bg-white"
-													side="top"
-												>
-													{#if cell.details?.tasks?.length}
+									{#if hasData}
+										<Tooltip.Root>
+											<Tooltip.Trigger
+												class="block w-full h-full absolute inset-0 cursor-default rounded-[2px] hover:outline hover:outline-1 hover:outline-border hover:outline-offset-1 transition-[outline] duration-100"
+												aria-label={formatDayCellLabel(
+													cell.date,
+													locale,
+												)}
+											/>
+											<Tooltip.Content
+												class="bg-card text-foreground border border-border shadow-lg"
+												arrowClasses="bg-card"
+												side="top"
+											>
+												{#if cell.details?.tasks?.length}
+													<div
+														class="min-w-48 space-y-1.5 py-0.5"
+													>
 														<div
-															class="min-w-48 space-y-1.5 py-0.5"
+															class="font-medium text-xs border-b border-border pb-1 mb-1"
 														>
-															<div
-																class="font-medium text-xs border-b border-border pb-1 mb-1"
-															>
-																{formatDayCellLabel(
-																	cell.date,
-																	locale,
-																)}
-																{#if predictionMode && cell.date >= todayStart}
-																	<span
-																		class="text-muted-foreground font-normal"
-																	>
-																		{m.capacity_predicted()}</span
-																	>
-																{/if}
-															</div>
-															{#each cell.details.tasks as task, taskIndex ((task.id ?? task.name) + "-" + taskIndex)}
-																<div
-																	class="flex justify-between gap-4 text-xs"
-																>
-																	<span
-																		class="truncate"
-																	>
-																		{#if task.id}
-																			<a
-																				href={resolve(
-																					`/${locale}/tasks-by-spaces/${task.id}`,
-																				)}
-																				class="hover:underline focus:outline-none focus:underline text-primary"
-																			>
-																				{#if getTaskDisplayId(task) !== "—"}
-																					<span
-																						class="font-bold"
-																						>{getTaskDisplayId(task)}</span
-																					>
-																					{task.name}
-																				{:else}
-																					{task.name}
-																				{/if}
-																			</a>
-																		{:else if getTaskDisplayId(task) !== "—"}
-																			<span
-																				class="font-bold"
-																				>{getTaskDisplayId(task)}</span
-																			>
-																			{task.name}
-																		{:else}
-																			{task.name}
-																		{/if}
-																	</span>
-<span class="tabular-nums shrink-0">{formatHoursWithUnit(task.hours)}</span>
-																</div>
-															{/each}
-															<div
-																class="flex justify-between gap-4 text-xs font-medium pt-1 border-t border-border"
-															>
-																<span
-																	>{m.tooltip_total()}</span
-																>
-																<span
-																	class="tabular-nums"
-																	>{formatHoursWithUnit(hours)}</span
-																>
-															</div>
-														</div>
-													{:else}
-														<span class="text-xs">
-															{hours > 0
-																? formatHoursWithUnit(hours)
-																: m.no_time_tracked()}
+															{formatDayCellLabel(
+																cell.date,
+																locale,
+															)}
 															{#if predictionMode && cell.date >= todayStart}
 																<span
-																	class="text-muted-foreground"
+																	class="text-muted-foreground font-normal"
 																>
 																	{m.capacity_predicted()}</span
 																>
 															{/if}
-														</span>
-													{/if}
-												</Tooltip.Content>
-											</Tooltip.Root>
+														</div>
+														{#each cell.details.tasks as task, taskIndex ((task.id ?? task.name) + "-" + taskIndex)}
+															<div
+																class="flex justify-between gap-4 text-xs"
+															>
+																<span
+																	class="truncate"
+																>
+																	{#if task.id}
+																		<a
+																			href={resolve(
+																				`/${locale}/tasks-by-spaces/${task.id}`,
+																			)}
+																			class="hover:underline focus:outline-none focus:underline text-primary"
+																		>
+																			{#if getTaskDisplayId(task) !== "—"}
+																				<span
+																					class="font-bold"
+																					>{getTaskDisplayId(
+																						task,
+																					)}</span
+																				>
+																				{task.name}
+																			{:else}
+																				{task.name}
+																			{/if}
+																		</a>
+																	{:else if getTaskDisplayId(task) !== "—"}
+																		<span
+																			class="font-bold"
+																			>{getTaskDisplayId(
+																				task,
+																			)}</span
+																		>
+																		{task.name}
+																	{:else}
+																		{task.name}
+																	{/if}
+																</span>
+																<span
+																	class="tabular-nums shrink-0"
+																	>{formatHoursWithUnit(
+																		task.hours,
+																	)}</span
+																>
+															</div>
+														{/each}
+														<div
+															class="flex justify-between gap-4 text-xs font-medium pt-1 border-t border-border"
+														>
+															<span
+																>{m.tooltip_total()}</span
+															>
+															<span
+																class="tabular-nums"
+																>{formatHoursWithUnit(
+																	hours,
+																)}</span
+															>
+														</div>
+													</div>
+												{:else}
+													<span class="text-xs">
+														{hours > 0
+															? formatHoursWithUnit(
+																	hours,
+																)
+															: m.no_time_tracked()}
+														{#if predictionMode && cell.date >= todayStart}
+															<span
+																class="text-muted-foreground"
+															>
+																{m.capacity_predicted()}</span
+															>
+														{/if}
+													</span>
+												{/if}
+											</Tooltip.Content>
+										</Tooltip.Root>
 									{:else}
 										<div
 											class="block w-full h-full rounded-[2px] bg-[var(--capacity-cell-empty)]"
@@ -594,8 +561,7 @@
 								</div>
 							{/each}
 						{/each}
-						</div>
-					{/if}
+					</div>
 				</div>
 			</div>
 		</Tooltip.Provider>
