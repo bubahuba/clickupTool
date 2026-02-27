@@ -1,17 +1,11 @@
 # ClickUp Tool
 
-SvelteKit app that connects to the ClickUp API with a dashboard and i18n support.
+SvelteKit app that connects to the ClickUp API.
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and add your ClickUp API token:
+Get your token from [ClickUp API](https://clickup.com/api);
 
-```sh
-cp .env.example .env
-# Edit .env and set API_TOKEN=pk_your_token_here
-```
-
-2. Get your token from [ClickUp API](https://clickup.com/api).
 
 ## Developing
 
@@ -38,7 +32,7 @@ You can preview the production build with `npm run preview`.
 
 ## Features
 
-- **ClickUp API** – Authenticated via `API_TOKEN` from `.env`, using openapi-fetch with generated types
+- **ClickUp API** – Authenticated via `API_TOKEN`, using openapi-fetch with generated types
 - **TanStack Query** – Query key factory (`@lukemorales/query-key-factory`) for cache management
 - **Paraglide** – i18n with Czech (cs) as default, English (en); add more in `project.inlang/settings.json` and `messages/{locale}.json`
 - **Dashboard** – Welcome message using the authenticated user's name from ClickUp
