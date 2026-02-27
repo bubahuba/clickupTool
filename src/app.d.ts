@@ -66,6 +66,7 @@ declare module '$lib/paraglide/messages.js' {
 	export function login_placeholder(): string;
 	export function login_submit(): string;
 	export function login_error_invalid(): string;
+	export function login_api_key_instructions(): string;
 	export function nav_logout(): string;
 }
 

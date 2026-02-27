@@ -8,8 +8,10 @@
 		type ClickUpAuthorizedTeamsResponse,
 		type GetAuthorizedUserResponse
 	} from '$lib/api/index.js';
+	import { getInitials } from '$lib/utils.js';
 	import { MultiUserTimesheetsForbiddenError } from '$lib/api/timesheets-errors.js';
 	import { multiUserTimesheetsAllowed } from '$lib/stores/multi-user-timesheets.js';
+	import * as Avatar from '$lib/components/ui/avatar/index.js';
 	import { TimesheetTable } from '$lib/components/timesheet-table/index.js';
 	import { CapacityGrid } from '$lib/components/capacity-grid/index.js';
 	import type { TimesheetUser } from '$lib/components/timesheet-table/types.js';
@@ -48,17 +50,6 @@
 		}
 	});
 
-	$effect(() => {
-		const err = timesheetsQuery.error;
-		if (err instanceof MultiUserTimesheetsForbiddenError) {
-			multiUserTimesheetsAllowed.set(false);
-			toast.error(m.timesheets_multi_user_forbidden());
-			if (currentUserId != null) {
-				selectedUserIds = [currentUserId];
-			}
-		}
-	});
-
 	const teamMembers = $derived.by((): TimesheetUser[] => {
 		const team = teamsQuery.data?.teams?.find((teamItem) => teamItem.id === teamId);
 		const members = team?.members ?? [];
@@ -87,6 +78,11 @@
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
 				if (res.status === 403 && (data.multiUserForbidden || data.error?.includes?.('TIMEENTRY'))) {
+					multiUserTimesheetsAllowed.set(false);
+					toast.error(m.timesheets_multi_user_forbidden());
+					if (currentUserId != null) {
+						selectedUserIds = [currentUserId];
+					}
 					throw new MultiUserTimesheetsForbiddenError(data.error ?? 'Access denied');
 				}
 				throw new Error(data.error ?? `Error ${res.status}`);
@@ -119,7 +115,20 @@
 		<p class="text-destructive">{m.error_prefix({ message: userQuery.error?.message ?? '' })}</p>
 	{:else}
 		{#if welcomeMessage}
-			<h1>{welcomeMessage}</h1>
+			<div class="flex items-center gap-4">
+				<Avatar.Root class="size-12">
+					{#if userQuery.data?.user?.profilePicture}
+						<Avatar.Image src={userQuery.data.user.profilePicture} alt="" />
+					{/if}
+					<Avatar.Fallback
+						class="text-base font-semibold"
+						style="background-color: {userQuery.data?.user?.color ?? '#6b7280'}; color: white"
+					>
+						{getInitials(userQuery.data?.user?.username ?? '', userQuery.data?.user?.initials)}
+					</Avatar.Fallback>
+				</Avatar.Root>
+				<h1>{welcomeMessage}</h1>
+			</div>
 		{:else}
 			<h1>{m.welcome_dashboard({ name: '', surname: '' })}</h1>
 		{/if}

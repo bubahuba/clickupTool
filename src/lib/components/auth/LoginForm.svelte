@@ -55,6 +55,7 @@
 		onsubmit={handleSubmit}
 	>
 		<h1 class="text-lg font-semibold">{m.login_title()}</h1>
+		<p class="text-sm text-muted-foreground">{m.login_api_key_instructions()}</p>
 		<div class="flex flex-col gap-2">
 			<Input
 				type="password"
