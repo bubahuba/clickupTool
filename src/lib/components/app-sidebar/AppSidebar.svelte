@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from "$app/navigation";
+	import { invalidateAll, goto } from "$app/navigation";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 	import * as m from "$lib/paraglide/messages.js";
 	import { page } from "$app/state";
@@ -39,7 +39,7 @@
 	}
 
 	const linkClass =
-		"flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-start text-sm outline-none transition-colors [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0";
+		"flex w-full items-center gap-2 overflow-hidden rounded-md p-1 text-start text-sm outline-none transition-colors [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0";
 	const linkActiveClass =
 		"bg-sidebar-accent font-medium text-sidebar-accent-foreground";
 	const linkInactiveClass =
@@ -52,24 +52,25 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
-			<Sidebar.GroupLabel>{m.nav_label()}</Sidebar.GroupLabel>
+			<Sidebar.GroupLabel class="mt-2">{m.nav_label()}</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					{#each navItems as item (item.href)}
 						{@const Icon = item.icon}
 						<Sidebar.MenuItem>
-							<a
-								href={resolve(item.href as import('$app/types').Pathname)}
+							<button
+								type="button"
 								class={cn(
 									linkClass,
 									isActive(item.href)
 										? linkActiveClass
 										: linkInactiveClass,
 								)}
+								onclick={() => goto(resolve(item.href as import('$app/types').Pathname))}
 							>
 								<Icon />
 								<span>{item.label}</span>
-							</a>
+							</button>
 						</Sidebar.MenuItem>
 					{/each}
 				</Sidebar.Menu>
