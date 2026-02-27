@@ -41,7 +41,7 @@
 		{#if selectedUsers.length === 0}
 			<span class="text-muted-foreground">{m.select_users()}</span>
 		{:else}
-			<div class="flex flex-wrap gap-1 max-w-[12rem] overflow-hidden">
+			<div class="flex flex-wrap gap-1 max-w-48 overflow-hidden">
 				{#each selectedUsers as user (user.id)}
 					<span
 						class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shrink-0"
@@ -58,7 +58,7 @@
 		{/if}
 		<ChevronDown class="size-4 opacity-70 shrink-0" />
 	</DropdownMenuTrigger>
-	<DropdownMenuContent align="end" class="max-h-[16rem] overflow-y-auto">
+	<DropdownMenuContent align="end" class="max-h-64 overflow-y-auto">
 		<DropdownMenuCheckboxGroup value={selectedValue} onValueChange={handleValueChange}>
 			{#each users as user (user.id)}
 				<DropdownMenuCheckboxItem value={String(user.id)}>

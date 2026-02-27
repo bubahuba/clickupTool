@@ -9,17 +9,15 @@
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
   import { goto } from "$app/navigation";
+  import { UserCard } from "$lib/components/user-card/index.js";
+  import { locales as LOCALES } from '$lib/paraglide/runtime.js';
 
   let { children } = $props();
 
-  const LOCALES = ["cs", "en"] as const;
-
   function switchLocale(target: (typeof LOCALES)[number]) {
     const pathname = $page.url.pathname;
-    const newPath = pathname.replace(
-      /^\/(cs|en)/,
-      `/${target}`,
-    ) as `/${string}`;
+    const localeRegex = new RegExp(`^/(${(LOCALES as readonly string[]).join("|")})`);
+    const newPath = pathname.replace(localeRegex, `/${target}`) as `/${string}`;
     goto(resolve(newPath));
   }
 </script>
@@ -31,6 +29,8 @@
       class="fixed inset-e-2 top-2 z-50 flex items-center gap-2"
       aria-label="Theme and locale"
     >
+      <UserCard avatarClasses="size-8" />
+      <span class="text-muted-foreground text-sm select-none">|</span>
       <Button.Root
         variant="ghost"
         size="icon-sm"
