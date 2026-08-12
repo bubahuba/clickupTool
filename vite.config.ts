@@ -3,7 +3,9 @@ import { defineConfig } from 'vite';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig({
+export default defineConfig({server: {
+	allowedHosts: true
+  },
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
