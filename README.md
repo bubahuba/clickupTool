@@ -26,9 +26,23 @@ To create a production version of your app:
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+You can preview the Cloudflare production build with `npm run preview`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Deploying (Cloudflare Workers)
+
+This app uses `@sveltejs/adapter-cloudflare` and `wrangler.jsonc`.
+
+```sh
+npm run deploy
+```
+
+For Cloudflare Git builds, use:
+
+- **Build command:** `npm run build`
+- **Deploy command:** `npx wrangler deploy`
+- **Build output directory:** `.svelte-kit/cloudflare` (if the dashboard asks for one)
+
+Set secrets (e.g. optional `API_TOKEN`) in the Worker settings or with `npx wrangler secret put API_TOKEN`.
 
 ## Features
 
