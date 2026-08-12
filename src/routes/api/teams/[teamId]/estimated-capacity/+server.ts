@@ -2,15 +2,16 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import {
 	fetchClickUpUser,
-	fetchClickUpSpaces,
-	fetchClickUpTeamTasksAllPages,
-	fetchClickUpTask,
-	fetchClickUpTaskTime
+	fetchClickUpTeamTasksAllPages
 } from '$lib/api/clickup-fetch.js';
 import { isStatusClosed } from '$lib/api/status-utils.js';
 import { getToken } from '$lib/auth/server.js';
 
-/** Returns total estimate hours from active tasks assigned to the current user with estimates. */
+/**
+ * Returns remaining estimate hours from active tasks assigned to the current user.
+ * Uses a single assignee-filtered team-tasks query (paginated) to stay within
+ * Cloudflare Workers' subrequest limit — no per-task ClickUp calls.
+ */
 export const GET: RequestHandler = async (event) => {
 	const token = getToken(event);
 	if (!token) {
@@ -23,42 +24,18 @@ export const GET: RequestHandler = async (event) => {
 	}
 
 	try {
-		const [userRes, spacesRes] = await Promise.all([
-			fetchClickUpUser(token),
-			fetchClickUpSpaces(token, teamIdNum)
-		]);
-
+		const userRes = await fetchClickUpUser(token);
 		const currentUserId = userRes.user?.id;
 		if (currentUserId == null) {
-			return json({ totalEstimateHours: 0 });
+			return json({ tasks: [] });
 		}
 
-		const spaces = spacesRes.spaces ?? [];
-
-		const allTasksArrays = await Promise.all(
-			spaces.map((space) =>
-				fetchClickUpTeamTasksAllPages(token, teamIdNum, space.id, { includeClosed: false })
-			)
-		);
-
-		const candidateTasks: Array<{
-			task: { id: string; name: string; custom_id?: string; time_estimate: number; time_spent?: number; url?: string };
-		}> = [];
-		for (const tasks of allTasksArrays) {
-			for (const task of tasks) {
-				if (!task.time_estimate || task.time_estimate <= 0) continue;
-				const isAssignedToUser =
-					task.assignees?.length &&
-					task.assignees.some((assignee) => assignee.id === currentUserId);
-				if (!isAssignedToUser) continue;
-				candidateTasks.push({ task });
-			}
-		}
-
-		const [timeTrackedResults, fullTaskResults] = await Promise.all([
-			Promise.all(candidateTasks.map(({ task }) => fetchClickUpTaskTime(token, task.id))),
-			Promise.all(candidateTasks.map(({ task }) => fetchClickUpTask(token, task.id)))
-		]);
+		// 1 user call + ≤10 task pages ≈ ≤11 subrequests (well under Workers free limit of 50)
+		const tasks = await fetchClickUpTeamTasksAllPages(token, teamIdNum, {
+			includeClosed: false,
+			assigneeIds: [currentUserId],
+			maxPages: 10
+		});
 
 		const estimatedTasks: Array<{
 			id: string;
@@ -67,26 +44,21 @@ export const GET: RequestHandler = async (event) => {
 			time_estimate: number;
 			url?: string;
 		}> = [];
-		for (let i = 0; i < candidateTasks.length; i++) {
-			const { task } = candidateTasks[i];
-			const fullTask = fullTaskResults[i];
-			// Exclude closed/done/complete tasks from estimated hours
-			if (isStatusClosed(fullTask?.status ?? task.status)) continue;
-			// Prefer time_spent from full task (GET /task/{id}), fallback to legacy time endpoint
-			const trackedMs =
-				fullTask?.time_spent ??
-				timeTrackedResults[i]?.totalMs ??
-				task.time_spent ??
-				0;
+
+		for (const task of tasks) {
+			if (!task.time_estimate || task.time_estimate <= 0) continue;
+			if (isStatusClosed(task.status)) continue;
+
+			const trackedMs = task.time_spent ?? 0;
 			const availableMs = Math.max(0, task.time_estimate - trackedMs);
-			if (availableMs < 60000) continue; // Skip tasks with < 1 min available (handles 3h/3h case)
+			if (availableMs < 60000) continue; // Skip tasks with < 1 min available
 
 			estimatedTasks.push({
 				id: task.id,
 				name: task.name,
 				custom_id: task.custom_id,
 				time_estimate: availableMs,
-				url: task.url ?? fullTask?.url
+				url: task.url
 			});
 		}
 

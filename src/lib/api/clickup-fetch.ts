@@ -105,23 +105,38 @@ export async function fetchClickUpTeamTasks(
 	return { tasks };
 }
 
-/** Fetch all tasks for a space with pagination (handles 100 per page). */
+export interface FetchClickUpTeamTasksOptions {
+	includeClosed?: boolean;
+	/** Filter to one or more spaces. Omit to search the whole workspace. */
+	spaceIds?: string[];
+	/** Filter to one or more assignees (ClickUp user ids). */
+	assigneeIds?: number[];
+	/** Safety cap on pages (100 tasks each). Defaults to 10 (1000 tasks). */
+	maxPages?: number;
+}
+
+/** Fetch filtered team tasks with pagination (handles 100 per page). */
 export async function fetchClickUpTeamTasksAllPages(
 	token: string,
 	teamId: number,
-	spaceId: string,
-	options: { includeClosed?: boolean }
+	options: FetchClickUpTeamTasksOptions = {}
 ): Promise<ClickUpTask[]> {
 	const allTasks: ClickUpTask[] = [];
 	let page = 0;
 	const limit = 100; // ClickUp returns max 100 per page
+	const maxPages = options.maxPages ?? 10;
 	let hasMore = true;
-	while (hasMore) {
+	while (hasMore && page < maxPages) {
 		const params = new URLSearchParams();
-		params.set('space_ids[]', spaceId);
 		params.set('include_closed', String(options.includeClosed ?? false));
 		params.set('custom_task_ids', 'true');
 		params.set('page', String(page));
+		for (const spaceId of options.spaceIds ?? []) {
+			params.append('space_ids[]', spaceId);
+		}
+		for (const assigneeId of options.assigneeIds ?? []) {
+			params.append('assignees[]', String(assigneeId));
+		}
 		const { tasks } = await fetchClickUpTeamTasks(token, teamId, params);
 		allTasks.push(...tasks);
 		hasMore = tasks.length >= limit;
