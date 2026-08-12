@@ -2,7 +2,7 @@
 
 SvelteKit app that connects to the ClickUp API.
 
-## Setup
+## Setup test
 
 Get your token from [ClickUp API](https://clickup.com/api);
 
